@@ -11,6 +11,9 @@
         },
         "sparkpad": {
             "db":"http://172.28.13.199:5984/orders"
+        },
+        "testing": {
+		"db":"http://172.19.130.90:5984/orders"
         }
     }
 }
