@@ -84,7 +84,6 @@ function queue(cfg, on_err, on_dbg) {
 function receiveOC(cfg) {
     var mq = queue(cfg, function (x) {
         window.$('#stomp_info').html(x);
-        console.log(str);
         mq.close();
         window.setTimeout(function () {   
             receiveOC(cfg);
