@@ -1,0 +1,29 @@
+{
+    "store-id":"SP000001",
+    "bus-host":"ws://{{hostname}}:15674/ws",
+    "mq-host":"172.16.104.123:8082",
+    "mq-host-prod":"172.16.102.122:8082",
+    "shovel-url":"http://guest:guest@{{hostname}}:15672/api/parameters/shovel/%2f/",
+    "shovels" : {
+        "from-oc":{
+            "src-uri":"amqp://ymeng:111111@{{mq-host}}/%2fzkf",
+            "src-exchange":"ex_pos",
+            "src-exchange-key":"order2.{{store-id}}",
+            "dest-uri":"amqp://",
+            "dest-queue":"{{store-id}}.KC",
+            "ack-mode":"on-confirm"
+        }
+    },
+    "oc-test":{
+        "oc-host":"172.16.104.124:8081",
+        "oc-token":"KMn8Ox8nJWW88iMf485535189v66I9bPVesy9q6280epf6EKb3H0ptt9WOD70M80",
+        "oc-submitUrl":"http://{{oc-host}}/oc2/api/submitNewPosOrder.html?access_token={{oc-token}}",
+        "oc-modifyUrl":"http://{{oc-host}}/oc2/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
+        "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid="        
+    },
+    "oc-host":"172.16.103.192:8080",
+    "oc-token":"hty4B91i8S02je45FL07AnN29UB7Hu2mZ2t1864Hk29Oji06M1397212281Th717",
+    "oc-submitUrl":"http://{{oc-host}}/api/submitNewPosOrder.html?access_token={{oc-token}}",
+    "oc-modifyUrl":"http://{{oc-host}}/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
+    "oc-queryUrl":"http://{{oc-host}}/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid="
+}
