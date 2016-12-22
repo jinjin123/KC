@@ -304,8 +304,8 @@ var scanDBCounter = {
 function scanOrders(cfg) {
     'use strict';
     console.log('scan database')
-    //http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true
-    window.$.couch.db('orders').view('kc/status?startkey=[0,4]&endkey=[0,100]&include_docs=true', {
+    //http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true
+    window.$.couch.db('orders').view('kc/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true', {
         success: function(data) {
             var m = modifyOC(cfg),
                 s = submitOC(cfg);
@@ -335,7 +335,7 @@ function onOrderChange(cfg, last_seq) {
         last_seq = 'now';
     }
     console.log('listen to changes since '+last_seq);
-    window.$.getJSON("/orders/_changes?feed=longpoll&since="+last_seq+"&include_docs=true", function (result) {
+    window.$.getJSON("/orders/_changes?feed=longpoll&since="+last_seq+"&include_docs=true&conflicts=true", function (result) {
         var tmp = result.results.filter(function (o) {
             if (!o.doc.deleted) {
                 if (o.doc.order) {
@@ -368,7 +368,7 @@ function onOrderChange(cfg, last_seq) {
 
 function retryFailed(cfg, then) {
     'use strict';
-    window.$.getJSON("/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[9999,100]&include_docs=true", function(result){
+    window.$.getJSON("/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[9999,100]&include_docs=true&conflicts=true", function(result){
         var tmp = result.rows.filter(function (o) {
             if (!o.doc.deleted) {
                 if (o.doc.order) {
