@@ -1,4 +1,7 @@
 
+function getDate(){
+    return (new Date()).toLocaleString();
+}
 function topic(cfg, on_err, on_dbg) {
     'use strict';
     on_err = typeof (on_err) === "function" ? on_err : function (x) {console.log(x); };
@@ -96,7 +99,7 @@ function receiveOC(cfg) {
         var doc = {
             _id: msg.orderInfo.orderid,
             sync_status: 1,
-            timestamp: (new Datetime()).toLocaleString(),
+            timestamp: getDate(),
             oc_msg: null,
             order: msg
         };
@@ -238,6 +241,7 @@ function modifyOC(cfg) {
 }
 function updateOrders(order, then) {
     'use strict';
+    order.timestamp = order.timestamp ? order.timestamp : getDate();
     window.$.couch.db('orders').saveDoc(order, {
         success: function (data) {
             console.log('update order '+order._id+' success', data);
