@@ -3,6 +3,7 @@
     <head>
         <title>KC 3.0.0</title>
         <link rel="stylesheet" href="style/main.css" type="text/css">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     </head>
     <body>
         <h1>KC 3.0.0</h1>
@@ -57,6 +58,7 @@
         $(document).ready(function() {
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
+                //test();
                 receiveOC(cfg);
                 scanOrders(cfg);
                 $('#retry_failed_orders').click(function () {

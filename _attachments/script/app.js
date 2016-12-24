@@ -101,7 +101,7 @@ function receiveOC(cfg) {
             order: msg
         };
         window.$.couch.db('orders').saveDoc(doc, function(data, status){
-            console.log('save data from oc to order', data, status);
+            console.log('save data from oc to orders');
         });
     }, cfg.shovels['from-oc']["dest-queue"]);
 }
@@ -120,6 +120,7 @@ function loadConfig(fun) {
         return x;
     }
     window.$.getJSON("kc.config.json", function (result) {
+        result.baseurl = document.location.protocol + '//' + document.location.host +'/orders/_design/kc';
         result.hostname = document.location.hostname;
         if (typeof (fun) === "function") {
             fun(render(result, result));
@@ -240,11 +241,11 @@ function updateOrders(order, then) {
     window.$.couch.db('orders').saveDoc(order, {
         success: function (data) {
             console.log('update order '+order._id+' success', data);
-            then();
+            then(order);
         },
         error: function (status) {
             console.log('update order '+order._id+' failed', status);
-            then();
+            then(order);
         }
     });
 }
@@ -285,13 +286,23 @@ function sync1Order(od, m, s, xthen) {
         }
     });    
 }
+function getStoreName(order){
+    if(order){
+        if(order.orderInfo){
+            return order.orderInfo.storename;
+        }
+    }
+    console.log(order);
+}
 function syncOC(m, s, docs, index, then) {
     'use strict';
     if (index < docs.length) {
         var od = docs[index],
-            xthen = function () {
-                window.syncOC(m, s, docs, index + 1, then);
+            xthen = function (order) {
+                console.log("after sync to OC storename=" + getStoreName(order.order));
+                syncOC(m, s, docs, index + 1, then);
             };
+        console.log("before sync to OC storename=" + getStoreName(od.order));
         window.sync1Order(od, m, s, xthen);
     } else {
         then();
@@ -301,10 +312,49 @@ var scanDBCounter = {
     success: 0,
     fail: 0
 };
+function test(){
+    
+    window.$.ajax({
+//        url: "http://127.0.0.1:5984/orders/CN000001201612158654",
+        url: "http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
+        cache: false
+    }).done(function (data, textStatus, jqXHR) {
+        console.log('success');
+        console.log(data);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.log('failed ' + textStatus);
+    });        
+
+}
 function scanOrders(cfg) {
     'use strict';
-    console.log('scan database')
-    //http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true
+    window.$.ajax({
+        url: cfg.baseurl + "/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
+        cache: false,
+        timeout: 60000
+    }).done(function (data, textStatus, jqXHR) {
+        data = JSON.parse(data);
+        var m = modifyOC(cfg),
+            s = submitOC(cfg);
+        scanDBCounter.success++;
+        window.$('#scan_db_success').html(scanDBCounter.success);
+        window.syncOC(m, s, data.rows.map(function (o) {
+            return o.doc;
+        }), 0, function () {
+            window.setTimeout(function () {
+                scanOrders(cfg);
+            }, 10000);
+        });
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        scanDBCounter.fail++;
+        window.$('#scan_db_fail').html(scanDBCounter.fail);
+        console.log(status);
+        window.setTimeout(function () {
+            scanOrders(cfg);
+        }, 10000);
+    });        
+
+/*
     window.$.couch.db('orders').view('kc/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true', {
         success: function(data) {
             var m = modifyOC(cfg),
@@ -328,6 +378,7 @@ function scanOrders(cfg) {
             }, 10000);
         }
     });
+*/    
 }
 function onOrderChange(cfg, last_seq) {
     'use strict';
