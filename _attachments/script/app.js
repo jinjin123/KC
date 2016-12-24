@@ -316,6 +316,56 @@ var scanDBCounter = {
     success: 0,
     fail: 0
 };
+function getRawLocal(key, then){
+    window.$.ajax({
+        url: "/orders/_local/"+ key,
+        cache: false
+    }).done(function (data, textStatus, jqXHR) {
+        data = JSON.parse(data);
+        then(data, textStatus);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        then(null, {
+            "textStatus": textStatus,
+            "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+            "statusCode": jqXHR.status
+        });
+    });        
+}
+function getLocal(key, then){
+    getRawLocal(key, function(data, err){
+        then((data && data.value)?data.value:data, err);
+    });
+}
+
+function setRawLocal(key, v, then){
+    window.$.ajax({
+        url: "/orders/_local/" + key,
+        method: 'PUT',
+        cache: false,
+        contentType: 'application/json',
+        timeout: 60000,
+        dataType: 'json',
+        data: JSON.stringify(v),
+        processData: false
+    }).done(function (data, textStatus, jqXHR) {
+        then(data, textStatus);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        then(null, {
+            "textStatus": textStatus,
+            "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+            "statusCode": jqXHR.status
+        });
+    });    
+    
+}
+function setLocal(key, v, then){
+    getRawLocal(key, function(data, err){
+        if(data){
+            data.value = v;
+            setRawLocal(key, data, then);
+        }
+    })
+}
 function test(){
     
     window.$.ajax({
@@ -333,7 +383,7 @@ function test(){
 function scanOrders(cfg) {
     'use strict';
     window.$.ajax({
-        url: cfg.baseurl + "/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
+        url: "/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
         cache: false,
         timeout: 60000
     }).done(function (data, textStatus, jqXHR) {
@@ -356,33 +406,7 @@ function scanOrders(cfg) {
         window.setTimeout(function () {
             scanOrders(cfg);
         }, 10000);
-    });        
-
-/*
-    window.$.couch.db('orders').view('kc/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true', {
-        success: function(data) {
-            var m = modifyOC(cfg),
-                s = submitOC(cfg);
-            scanDBCounter.success++;
-            window.$('#scan_db_success').html(scanDBCounter.success);
-            window.syncOC(m, s, data.rows.map(function (o) {
-                return o.doc;
-            }), 0, function () {
-                window.setTimeout(function () {
-                    scanOrders(cfg);
-                }, 10000);
-            });
-        },
-        error: function(status) {
-            scanDBCounter.fail++;
-            window.$('#scan_db_fail').html(scanDBCounter.fail);
-            console.log(status);
-            window.setTimeout(function () {
-                scanOrders(cfg);
-            }, 10000);
-        }
     });
-*/    
 }
 function onOrderChange(cfg, last_seq) {
     'use strict';

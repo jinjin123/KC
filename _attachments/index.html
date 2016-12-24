@@ -11,6 +11,11 @@
         <div id="main">
             <ul>
                 <li>
+                    <input id="storeid" type="text"> 
+                    <button id="set_storeid">Set Store ID</button>   
+                    <span id="result"></span>                 
+                </li>
+                <li>
                     <a href="kc.config.json">Current Configuration</a>
                     <span>  </span>
                     <button id="add_data">Add local data</button>
@@ -61,6 +66,13 @@
                 //test();
                 receiveOC(cfg);
                 scanOrders(cfg);
+                getLocal('storeid', function(data, err) {
+                    if(data){
+                        $('#storeid').val(data);
+                    } else {
+                        $("result").text(JSON.stringify(err));
+                    }
+                })
                 $('#retry_failed_orders').click(function () {
                     retryFailed(cfg, function(err){
                         if(err){
@@ -70,6 +82,13 @@
                         }
                     });
                 });
+                $('#set_storeid').click(function() {
+                    setLocal('storeid', $('#storeid').val(), function(data, err) {
+                        if(!data){
+                            $("result").html(JSON.stringify(err));
+                        }
+                    });
+                })
                 $('#query_order').click(function() {
                     window.location.href = getOCQueryURL(cfg, $('#orderid').val());
                 });
