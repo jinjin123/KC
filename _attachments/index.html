@@ -66,11 +66,11 @@
                 //test();
                 receiveOC(cfg);
                 scanOrders(cfg);
-                getLocal('storeid', function(data, err) {
+                getLocal('store-id', function(data, err) {
                     if(data){
                         $('#storeid').val(data);
                     } else {
-                        $("result").text(JSON.stringify(err));
+                        $("#result").text(JSON.stringify(err));
                     }
                 })
                 $('#retry_failed_orders').click(function () {
@@ -83,9 +83,9 @@
                     });
                 });
                 $('#set_storeid').click(function() {
-                    setLocal('storeid', $('#storeid').val(), function(data, err) {
+                    setLocal('store-id', $('#storeid').val(), function(data, err) {
                         if(!data){
-                            $("result").html(JSON.stringify(err));
+                            $("#result").html(JSON.stringify(err));
                         }
                     });
                 })

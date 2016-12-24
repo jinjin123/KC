@@ -1,5 +1,5 @@
 {
-    "store-id":"SP000001",
+    "store-id":"%store-id%",
     "bus-host":"ws://{{hostname}}:15674/ws",
     "mq-host":"172.16.104.123:8082",
     "mq-host-prod":"172.16.102.122:8082",

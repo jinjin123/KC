@@ -122,11 +122,54 @@ function loadConfig(fun) {
         }
         return x;
     }
+    function collect(x, result) {
+        var i,
+            reg = /%([0-9a-zA-Z_-]+)%/;
+        if(typeof (x) === 'string') {
+            var m = x.match(reg);
+            if(m){
+                result[m[1]] = true;
+                return x.replace(reg, '{{'+m[1]+'}}')
+            }
+        } else if(typeof (x) === 'object'){
+            for (i in x){
+                x[i] = collect(x[i], result);
+            }
+        }
+        return x;
+    }
+    function obj2array(o){
+        var i, ret = [];
+        for(i in o){
+            ret.push(i);
+        }
+        return ret;
+    }
+    function resolve(vars, index, result, then){
+        if(index < vars.length) {
+            getLocal(vars[index], function(data, err){
+                if(data){
+                    result[vars[index]] = data;
+                    resolve(vars, index + 1, result, then);
+                } else {
+                    result[vars[index]] = '';
+                    resolve(vars, index + 1, result, then);                    
+                }
+            });
+        } else {
+            then(result);
+        }
+    }
     window.$.getJSON("kc.config.json", function (result) {
         result.baseurl = document.location.protocol + '//' + document.location.host +'/orders/_design/kc';
         result.hostname = document.location.hostname;
         if (typeof (fun) === "function") {
-            fun(render(result, result));
+            var variables = {};
+            result = collect(result, variables);
+            variables = obj2array(variables);
+            resolve(variables, 0, result, function(rlt){
+                fun(render(rlt, rlt));
+            });
         } else {
             throw "Missing argument 'fun'!";
         }
@@ -362,9 +405,11 @@ function setLocal(key, v, then){
     getRawLocal(key, function(data, err){
         if(data){
             data.value = v;
-            setRawLocal(key, data, then);
+        } else {
+            data = {_id:key, value:v};
         }
-    })
+        setRawLocal(key, data, then);
+    });
 }
 function test(){
     
