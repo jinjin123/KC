@@ -6,6 +6,6 @@
  */
 function(doc) {
     if(doc.order && doc.order.orderInfo && doc.order.orderInfo.orderstatus){
-        emit(doc.order.orderInfo.orderstatus, null);
+        emit(doc.order.orderInfo.orderstatus, doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
     }
 }

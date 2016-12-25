@@ -4,8 +4,8 @@
  *
  * @param {object} doc - Document Object.
  */
-function(doc) {
+function (doc) {
     if (doc.order && doc.order.orderInfo && doc.order.orderInfo.orderstatus) {
-        emit([doc.sync_status, doc.order.orderInfo.orderstatus], null);
+        emit([doc.sync_status, doc.order.orderInfo.orderstatus], doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
     } 
 }

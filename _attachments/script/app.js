@@ -124,7 +124,7 @@ function loadConfig(fun) {
     }
     function collect(x, result) {
         var i,
-            reg = /%([0-9a-zA-Z_-]+)%/;
+            reg = /{%([0-9a-zA-Z_-]+)%}/;
         if(typeof (x) === 'string') {
             var m = x.match(reg);
             if(m){

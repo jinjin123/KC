@@ -5,5 +5,5 @@
  * @param {object} doc - Document Object.
  */
 function(doc) {
-    emit(doc.sync_status, null);
+    emit(doc.sync_status, doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
 }
