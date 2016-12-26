@@ -111,32 +111,52 @@ function receiveOC(cfg) {
 
 function loadConfig(fun) {
     'use strict';
-    function render(x, env) {
-        var i;
-        if (typeof (x) === "string") {
-            return window.Mustache.render(x, env);
-        } else if (typeof (x) === "object") {
-            for (i in x) {
-                x[i] = render(x[i], env);
+//    var x = Mustache.parse("   {{hello}}dfa", ["{{", "}}"]);
+//    var y = Mustache.parse("   {%hello%} dfa {{world}} 123", ["{%", "%}"]);
+    function walk(x, acc, func) {
+        if(typeof(func) === "function") {
+            var i;
+            if (typeof (x) === "string") {
+                return func(x, acc);
+            } else if (typeof (x) === "object") {
+                for (i in x) {
+                    x[i] = walk(x[i], acc, func);
+                }
             }
         }
         return x;
     }
+    function render(x, env, tags) {
+        return walk(x, {
+            "tags": tags,
+            "env": env 
+        }, function(x, acc){
+            if(!acc.tags){
+                return window.Mustache.render(x, acc.env);
+            } else {
+                var buffer="", ii, a = window.Mustache.parse(x, acc.tags);
+                for(ii in a) {
+                    var obj = a[ii];
+                    if(obj[0] === "name") {
+                        buffer += env[obj[1]];
+                    } else {
+                        buffer += obj[1];
+                    }
+                }
+                return buffer;
+            }
+        });
+    }
+
     function collect(x, result) {
-        var i,
-            reg = /{%([0-9a-zA-Z_-]+)%}/;
-        if(typeof (x) === 'string') {
+        var reg = /{%([0-9a-zA-Z_-]+)%}/;
+        return walk(x, {}, function (x, acc) {
             var m = x.match(reg);
             if(m){
                 result[m[1]] = true;
-                return x.replace(reg, '{{'+m[1]+'}}')
             }
-        } else if(typeof (x) === 'object'){
-            for (i in x){
-                x[i] = collect(x[i], result);
-            }
-        }
-        return x;
+            return x;            
+        });
     }
     function obj2array(o){
         var i, ret = [];
@@ -148,13 +168,8 @@ function loadConfig(fun) {
     function resolve(vars, index, result, then){
         if(index < vars.length) {
             getLocal(vars[index], function(data, err){
-                if(data){
-                    result[vars[index]] = data;
-                    resolve(vars, index + 1, result, then);
-                } else {
-                    result[vars[index]] = '';
-                    resolve(vars, index + 1, result, then);                    
-                }
+                result[vars[index]] = data;
+                resolve(vars, index + 1, result, then);
             });
         } else {
             then(result);
@@ -167,8 +182,10 @@ function loadConfig(fun) {
             var variables = {};
             result = collect(result, variables);
             variables = obj2array(variables);
-            resolve(variables, 0, result, function(rlt){
-                fun(render(rlt, rlt));
+            resolve(variables, 0, {}, function(rlt){
+                result = render(result, rlt, ["{%", "%}"]);
+                window.Mustache.clearCache();
+                fun(render(result, result));
             });
         } else {
             throw "Missing argument 'fun'!";
@@ -192,6 +209,7 @@ function setupShovel(cfg) {
             cache: false,
             username: 'guest',
             password: 'guest',
+            dataType: 'json',
             data: JSON.stringify({"value": cfg.shovels[i]}),
             success: on_success,
             error: on_err
@@ -204,6 +222,13 @@ function queryOC(cfg) {
     return function (id, fun) {
         fun = typeof (fun) === "function" ? fun : function (x) {console.log(x); };
         window.$.getJSON(cfg['oc-queryUrl'] + id, fun);
+    };
+}
+function ajaxError(jqXHR, textStatus, errorThrown){
+    return {
+        "textStatus": textStatus,
+        "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+        "statusCode": jqXHR.statusCode()
     };
 }
 function submitOC(cfg) {
@@ -225,11 +250,7 @@ function submitOC(cfg) {
         }).done(function (data, textStatus, jqXHR) {
             fun(data, textStatus);
         }).fail(function (jqXHR, textStatus, errorThrown) {
-            fun(null, {
-                "textStatus": textStatus,
-                "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-                "statusCode": jqXHR.statusCode()
-            });
+            fun(null, ajaxError(jqXHR, textStatus, errorThrown));
         });        
     };
 }
@@ -274,11 +295,7 @@ function modifyOC(cfg) {
         }).done(function (data, textStatus, jqXHR) {
             fun(data, textStatus);
         }).fail(function (jqXHR, textStatus, errorThrown) {
-            fun(null, {
-                "textStatus": textStatus,
-                "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-                "statusCode": jqXHR.statusCode()
-            });
+            fun(null,ajaxError(jqXHR, textStatus, errorThrown));
         });
     };
 }
@@ -362,16 +379,12 @@ var scanDBCounter = {
 function getRawLocal(key, then){
     window.$.ajax({
         url: "/orders/_local/"+ key,
+        dataType: 'json',
         cache: false
     }).done(function (data, textStatus, jqXHR) {
-        data = JSON.parse(data);
         then(data, textStatus);
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        then(null, {
-            "textStatus": textStatus,
-            "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-            "statusCode": jqXHR.status
-        });
+        then(null, ajaxError(jqXHR, textStatus, errorThrown));
     });        
 }
 function getLocal(key, then){
@@ -393,11 +406,7 @@ function setRawLocal(key, v, then){
     }).done(function (data, textStatus, jqXHR) {
         then(data, textStatus);
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        then(null, {
-            "textStatus": textStatus,
-            "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-            "statusCode": jqXHR.status
-        });
+        then(null, ajaxError(jqXHR, textStatus, errorThrown));
     });    
     
 }
@@ -416,28 +425,143 @@ function test(){
     window.$.ajax({
 //        url: "http://127.0.0.1:5984/orders/CN000001201612158654",
         url: "http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
-        cache: false
+        cache: false,
+        dataType: 'json'
     }).done(function (data, textStatus, jqXHR) {
         console.log('success');
         console.log(data);
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        console.log('failed ' + textStatus);
+        console.log('failed ' + JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
     });        
 
+}
+
+function resolveConflicts() {
+    'use strict';
+    function separate(data) {
+        var irrelevant = data.filter(function (doc) {
+            return !((doc.order)
+                    && (doc.order.orderInfo)
+                    && (typeof(doc.order) === 'object') 
+                    && (typeof(order.orderInfo) === "object"));
+        });
+        //We are interested in order data only
+        data = data.filter(function(doc) {
+            return ((doc.order)
+                    && (doc.order.orderInfo)
+                    && (typeof(doc.order) === 'object') 
+                    && (typeof(order.orderInfo) === "object"));
+        }).sort(function(item1, item2) {
+            if (item1.order.orderInfo.orderstatus > item2.order.orderInfo.orderstatus) {
+                return 1;
+            } else if (item1.order.orderInfo.orderstatus < item2.order.orderInfo.orderstatus) {
+                return -1;
+            } else {
+                return 0;
+            }
+        });
+        if (data.length > 0) {
+            var biggest = data[data.length - 1].order.orderInfo.orderstatus;
+            var remove = data.filter(function(doc){
+                return doc.order.orderInfo.orderstatus < biggest;
+            });
+            data = data.filter(function(doc){
+                return doc.order.orderInfo.orderstatus >= biggest;
+            });
+            return {
+                "keep": data, 
+                "remove": remove, 
+                "irrelevant": irrelevant
+            };
+        } else {
+            return {
+                "keep": [],
+                "remove" : [],
+                "irrelevant" : irrelevant
+            };
+        }
+
+    }
+    function asyncUpdate(data, index, result, then) {
+        if(index < data.length) {
+            window.$.couch.db("orders").removeDoc(data[index], {
+                success: function(data) {
+                    console.log(data);
+                    asyncUpdate(data, index + 1, result, then);
+                },
+                error: function(status) {
+                    console.log(status);
+                    asyncUpdate(data, index + 1, result, then);
+                }
+            });
+        } else {
+            then(result);
+        }
+    }
+    function asyncMap(data, index, result, then) {
+        if((data.length > 0) && (index < data[0].key.length)) {
+            window.$.ajax({
+                url: "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index],
+                cache:false,
+                dataType: 'json',
+                timeout: 60000
+            }).done(function(x, textStatus, jqXHR) {
+                result.push(x);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
+            }).always(function(){
+                asyncMap(data, index + 1, result, then);
+            });
+        } else {
+            then(result);
+        }
+    }
+    window.$.ajax({
+        url: "/orders/_design/kc/_view/conflicts?limit=1",
+        cache: false,
+        dataType: 'json',
+        timeout: 60000        
+    }).done(function (data, textStatus, jqXHR) {
+        asyncMap(data.rows, 0, [], function(results){
+            if(results.length > 0) {
+                results = separate(results);
+                asyncUpdate(results.remove.concat(results.irrelevant), 0, [], function() {
+                    if(results.remove.length > 0){
+                        resolveConflicts();
+                    } else {
+                        window.setTimeout(function () {
+                            resolveConflicts();
+                        }, 10000);
+                    }
+                });
+            } else {
+                window.setTimeout(function () {
+                    resolveConflicts();
+                }, 10000);                
+            }
+        });
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
+        window.setTimeout(function () {
+            resolveConflicts();
+        }, 10000);
+    });
 }
 function scanOrders(cfg) {
     'use strict';
     window.$.ajax({
         url: "/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
         cache: false,
+        dataType: 'json',
         timeout: 60000
     }).done(function (data, textStatus, jqXHR) {
-        data = JSON.parse(data);
         var m = modifyOC(cfg),
             s = submitOC(cfg);
         scanDBCounter.success++;
         window.$('#scan_db_success').html(scanDBCounter.success);
-        window.syncOC(m, s, data.rows.map(function (o) {
+        window.syncOC(m, s, data.rows.filter(function(item){
+            return item.value.length === 1;
+        }).map(function (o) {
             return o.doc;
         }), 0, function () {
             window.setTimeout(function () {
@@ -447,7 +571,7 @@ function scanOrders(cfg) {
     }).fail(function (jqXHR, textStatus, errorThrown) {
         scanDBCounter.fail++;
         window.$('#scan_db_fail').html(scanDBCounter.fail);
-        console.log(status);
+        console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
         window.setTimeout(function () {
             scanOrders(cfg);
         }, 10000);
@@ -474,15 +598,17 @@ function onOrderChange(cfg, last_seq) {
         }),
         m = window.modifyOC(cfg),
         s = window.submitOC(cfg); 
-        window.syncOC(m, s, tmp.map(function (o) {
+        window.syncOC(m, s, tmp.filter(function(item){
+            return item.value.length === 1;
+        }).map(function (o) {
             return o.doc;
         }), 0, function () {
             window.setTimeout(function () {
                 window.onOrderChange(cfg, result.last_seq);
             }, 10000);
         });
-    }).fail(function(xhr, err) {
-        console.log(err);
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
         window.setTimeout(function () {
             onOrderChange.onOrderChange(cfg, last_seq);
         }, 10000);
@@ -505,7 +631,9 @@ function retryFailed(cfg, then) {
         }),
         m = window.modifyOC(cfg),
         s = window.submitOC(cfg); 
-        window.syncOC(m, s, tmp.map(function (o) {
+        window.syncOC(m, s, tmp.filter(function(item){
+            return item.value.length === 1;
+        }).map(function (o) {
             return o.doc;
         }), 0, function () {
             if(typeof(then) === "function") {

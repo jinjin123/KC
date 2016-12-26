@@ -64,6 +64,7 @@
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
                 //test();
+                resolveConflicts();
                 receiveOC(cfg);
                 scanOrders(cfg);
                 getLocal('store-id', function(data, err) {
