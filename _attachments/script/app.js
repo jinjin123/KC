@@ -443,14 +443,14 @@ function resolveConflicts() {
             return !((doc.order)
                     && (doc.order.orderInfo)
                     && (typeof(doc.order) === 'object') 
-                    && (typeof(order.orderInfo) === "object"));
+                    && (typeof(doc.order.orderInfo) === "object"));
         });
         //We are interested in order data only
         data = data.filter(function(doc) {
             return ((doc.order)
                     && (doc.order.orderInfo)
                     && (typeof(doc.order) === 'object') 
-                    && (typeof(order.orderInfo) === "object"));
+                    && (typeof(doc.order.orderInfo) === "object"));
         }).sort(function(item1, item2) {
             if (item1.order.orderInfo.orderstatus > item2.order.orderInfo.orderstatus) {
                 return 1;
