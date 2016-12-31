@@ -21,6 +21,9 @@
                     <button id="add_data">Add local data</button>
                 </li>
                 <li>
+                    <a href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
+                </li>
+                <li>
                     <a href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
                 </li>
                 <li>
@@ -33,7 +36,9 @@
                 </li>
                 <li>
                     <input id="orderid" type="text"> 
-                    <button id="query_order">Query order from OC</button>
+                    <button id="query_order_oc">Query order from OC</button>
+                    <button id="query_order_kc">Query order from KC</button>
+                    <input id="rev" type="text"> 
                 </li>
                 <li>
                     Scan database: success <span id='scan_db_success'>0</span> times, fail <span id='scan_db_fail'>0</span> times
@@ -63,8 +68,6 @@
         $(document).ready(function() {
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
-                //test();
-                resolveConflicts();
                 receiveOC(cfg);
                 scanOrders(cfg);
                 getLocal('store-id', function(data, err) {
@@ -90,9 +93,17 @@
                         }
                     });
                 })
-                $('#query_order').click(function() {
+                $('#query_order_oc').click(function() {
                     window.location.href = getOCQueryURL(cfg, $('#orderid').val());
                 });
+                $('#query_order_kc').click(function() {
+                    if ($('#rev').val()) {
+                        window.location.href  = '/orders/'+ $('#orderid').val() + '?rev=' + $('#rev').val();
+                    } else {
+                        window.location.href  = '/orders/'+ $('#orderid').val();                        
+                    }
+                });
+
                 //var db = new PouchDB('orders');
                 /*
                 PouchDB.sync('orders', 'http://172.28.13.199:5984/orders',{

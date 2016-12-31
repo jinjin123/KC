@@ -421,9 +421,7 @@ function setLocal(key, v, then){
     });
 }
 function test(){
-    
     window.$.ajax({
-//        url: "http://127.0.0.1:5984/orders/CN000001201612158654",
         url: "http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
         cache: false,
         dataType: 'json'
@@ -436,7 +434,7 @@ function test(){
 
 }
 
-function resolveConflicts() {
+function resolveConflicts(xthen) {
     'use strict';
     function separate(data) {
         var irrelevant = data.filter(function (doc) {
@@ -453,34 +451,23 @@ function resolveConflicts() {
                     && (typeof(doc.order.orderInfo) === "object"));
         }).sort(function(item1, item2) {
             if (item1.order.orderInfo.orderstatus > item2.order.orderInfo.orderstatus) {
-                return 1;
-            } else if (item1.order.orderInfo.orderstatus < item2.order.orderInfo.orderstatus) {
                 return -1;
+            } else if (item1.order.orderInfo.orderstatus < item2.order.orderInfo.orderstatus) {
+                return 1;
             } else {
+                if (item1.sync_status > item2.sync_status) {
+                    return 1;
+                } else if (item2.sync_status > item1.sync_status) {
+                    return -1;
+                }
                 return 0;
             }
         });
-        if (data.length > 0) {
-            var biggest = data[data.length - 1].order.orderInfo.orderstatus;
-            var remove = data.filter(function(doc){
-                return doc.order.orderInfo.orderstatus < biggest;
-            });
-            data = data.filter(function(doc){
-                return doc.order.orderInfo.orderstatus >= biggest;
-            });
-            return {
-                "keep": data, 
-                "remove": remove, 
-                "irrelevant": irrelevant
-            };
-        } else {
-            return {
-                "keep": [],
-                "remove" : [],
-                "irrelevant" : irrelevant
-            };
-        }
-
+        return {
+            "keep": data.slice(0,1), 
+            "remove": data.slice(1), 
+            "irrelevant": irrelevant
+        };
     }
     function asyncUpdate(data, index, result, then) {
         if(index < data.length) {
@@ -516,6 +503,18 @@ function resolveConflicts() {
             then(result);
         }
     }
+    function next(err){
+        if(err) {
+            console.log(JSON.stringify(err));
+        }
+        if (typeof (xthen) === 'function'){
+            xthen(err);
+        } else {
+            window.setTimeout(function () {
+                resolveConflicts(xthen);
+            }, 10000);
+        }
+    }
     window.$.ajax({
         url: "/orders/_design/kc/_view/conflicts?limit=1",
         cache: false,
@@ -527,24 +526,17 @@ function resolveConflicts() {
                 results = separate(results);
                 asyncUpdate(results.remove.concat(results.irrelevant), 0, [], function() {
                     if(results.remove.length > 0){
-                        resolveConflicts();
+                        resolveConflicts(xthen);
                     } else {
-                        window.setTimeout(function () {
-                            resolveConflicts();
-                        }, 10000);
+                        next();
                     }
                 });
             } else {
-                window.setTimeout(function () {
-                    resolveConflicts();
-                }, 10000);                
+                next();               
             }
         });
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
-        window.setTimeout(function () {
-            resolveConflicts();
-        }, 10000);
+        next(ajaxError(jqXHR, textStatus, errorThrown));
     });
 }
 function scanOrders(cfg) {
@@ -564,17 +556,21 @@ function scanOrders(cfg) {
         }).map(function (o) {
             return o.doc;
         }), 0, function () {
-            window.setTimeout(function () {
-                scanOrders(cfg);
-            }, 10000);
+            resolveConflicts(function (){
+                window.setTimeout(function () {
+                    scanOrders(cfg);
+                }, 10000);
+            });
         });
     }).fail(function (jqXHR, textStatus, errorThrown) {
         scanDBCounter.fail++;
         window.$('#scan_db_fail').html(scanDBCounter.fail);
         console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
-        window.setTimeout(function () {
-            scanOrders(cfg);
-        }, 10000);
+        resolveConflicts(function (){
+            window.setTimeout(function () {
+                scanOrders(cfg);
+            }, 10000);
+        });
     });
 }
 function onOrderChange(cfg, last_seq) {
