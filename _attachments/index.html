@@ -17,14 +17,16 @@
                 </li>
                 <li>
                     <a href="kc.config.json">Current Configuration</a>
-<!--                    <span>  </span>
-                    <button id="add_data">Add local data</button> -->
-                </li>
-                <li>
                     <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
+                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
+                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
                 </li>
                 <li>
-                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
+                    <a name="clean" class="url" href="/orders/_design/kc/_view/timestamp?endkey=">Delete order that is older than a month</a>
+                    <a name="compact" class="url" href="">Compact database</a>
+                    <a name="release" class="url" href="">Synchronize software</a>
+                    <a name="compareOC" class="url" href="">Compare data with OC</a>
+                    <a name="comparePOS" class="url" href="">Compare data with POS</a>                    
                 </li>
                 <li>
                     <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
@@ -32,13 +34,12 @@
                     <button id="retry_failed_orders">Retry</button>
                 </li>
                 <li>
-                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
-                </li>
-                <li>
+                    <label>Order ID</label>
                     <input id="orderid" type="text"> 
                     <button id="query_order_oc">Query order from OC</button>
-                    <button id="query_order_kc">Query order from KC</button>
+                    <label>Revision Number</label>
                     <input id="rev" type="text"> 
+                    <button id="query_order_kc">Query order from KC</button>
                 </li>
                 <li>
                     Scan database: success <span id='scan_db_success'>0</span> times, fail <span id='scan_db_fail'>0</span> times
@@ -50,6 +51,8 @@
         </div>
     </body>
     <script src='script/jquery-3.1.1.js'></script>    
+    <script src='script/moment.min.js'></script>    
+    
     <script src="/_utils/script/sha1.js"></script>
     <script src="/_utils/script/json2.js"></script>
     <script src="/_utils/script/jquery.couch.js"></script>
@@ -72,7 +75,7 @@
                 getLocal('resolve-conflicts', function(data, err){
                     scanOrders(cfg, data);
                 });
-            //    var x = getAllURLs();
+                ordersBefore(30);
                 getLocal('store-id', function(data, err) {
                     if(data){
                         $('#storeid').val(data);

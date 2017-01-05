@@ -1,7 +1,8 @@
 
-function getDate(){
-    return (new Date()).toLocaleString();
+function getDate(d){
+    return ( d ? d : (new Date()) ).toLocaleString();
 }
+
 function topic(cfg, on_err, on_dbg) {
     'use strict';
     on_err = typeof (on_err) === "function" ? on_err : function (x) {console.log(x); };
@@ -213,7 +214,29 @@ function loadConfig(fun) {
         }
     });
 }
-
+function ordersBefore(x, fun) {
+    var now = new Date();
+    now.setDate(now.getDate()-x);
+    now = getDate(now);
+    window.$.ajax({
+        url:'/orders/_design/kc/_view/timestamp?endkey=' + encodeURI(now),
+        cache: false,
+        timeout: 60000
+    }).done(function (data, textStatus, jqXHR) {
+        if(typeof(fun) === 'function'){
+            fun(data);
+        } else {
+            console.log('------------------------');
+            console.log(data);
+        }
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        if(typeof(fun) === 'function') { 
+            fun(null,ajaxError(jqXHR, textStatus, errorThrown));
+        } else {
+            console.log('---------error----------');
+        }
+    });
+}
 function ajaxError(jqXHR, textStatus, errorThrown){
     return {
         "textStatus": textStatus,
@@ -453,19 +476,7 @@ function setLocal(key, v, then){
         setRawLocal(key, data, then);
     });
 }
-function test(){
-    window.$.ajax({
-        url: "http://127.0.0.1:5984/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
-        cache: false,
-        dataType: 'json'
-    }).done(function (data, textStatus, jqXHR) {
-        console.log('success');
-        console.log(data);
-    }).fail(function (jqXHR, textStatus, errorThrown) {
-        console.log('failed ' + JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
-    });        
 
-}
 
 function resolveConflicts(xthen) {
     'use strict';
