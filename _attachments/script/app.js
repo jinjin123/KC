@@ -83,7 +83,16 @@ function queue(cfg, on_err, on_dbg) {
     };
     return ret;
 }
-
+function getAllURLs(){
+    var result = [];
+    window.$('.url').each(function(i, item){
+        result.push({
+            name: item.name, 
+            href: item.href
+        });
+    });
+    return result;
+}
 function receiveOC(cfg) {
     var mq = queue(cfg, function (x) {
         window.$('#stomp_info').html(x);
@@ -95,24 +104,33 @@ function receiveOC(cfg) {
         window.$('#stomp_info').html(str);
         console.log(str);
     });
-    mq.receive(function(msg){
-        var doc = {
-            _id: msg.orderInfo.orderid,
-            sync_status: 1,
-            timestamp: getDate(),
-            oc_msg: null,
-            order: msg
-        };
-        window.$.couch.db('orders').saveDoc(doc, function(data, status){
-            console.log('save data from oc to orders');
-        });
-    }, cfg.shovels['from-oc']["dest-queue"]);
+    function shovelByName(name){
+        var i;
+        for(i=0 ;i < cfg['mq-config'].parameters.length; ++i){
+            if(cfg['mq-config'].parameters[i].name === name){
+                return cfg['mq-config'].parameters[i];
+            }        
+        }
+    }
+    var from_oc = shovelByName('from-oc');
+    if(from_oc) {
+        mq.receive(function(msg){
+            var doc = {
+                _id: msg.orderInfo.orderid,
+                sync_status: 1,
+                timestamp: getDate(),
+                oc_msg: null,
+                order: msg
+            };
+            window.$.couch.db('orders').saveDoc(doc, function(data, status){
+                console.log('save data from oc to orders');
+            });
+        }, from_oc["dest-queue"]);
+    }
 }
 
 function loadConfig(fun) {
     'use strict';
-//    var x = Mustache.parse("   {{hello}}dfa", ["{{", "}}"]);
-//    var y = Mustache.parse("   {%hello%} dfa {{world}} 123", ["{%", "%}"]);
     function walk(x, acc, func) {
         if(typeof(func) === "function") {
             var i;
@@ -185,7 +203,10 @@ function loadConfig(fun) {
             resolve(variables, 0, {}, function(rlt){
                 result = render(result, rlt, ["{%", "%}"]);
                 window.Mustache.clearCache();
-                fun(render(result, result));
+                var xcfg = render(result, result);
+                setupShovel(xcfg, function(data, err) {
+                    fun(xcfg);
+                });
             });
         } else {
             throw "Missing argument 'fun'!";
@@ -193,28 +214,46 @@ function loadConfig(fun) {
     });
 }
 
-function setupShovel(cfg) {
+function ajaxError(jqXHR, textStatus, errorThrown){
+    return {
+        "textStatus": textStatus,
+        "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+        "statusCode": jqXHR.statusCode()
+    };
+}
+function getMQConfig(cfg){
+    return {
+        url: cfg["mq-config-url"],
+        data: cfg["mq-config"]
+    };
+}
+function setupShovel(cfg, then) {
     'use strict';
-    var i;
-    function on_success(data, textStatus, jqXHR) {
-        console.log(data, textStatus);
+    if(typeof(then) === 'function'){
+        then(cfg);
     }
-    function on_err(jqXHR, textStatus, errorThrown) {
-        console.log(textStatus, errorThrown);
-    }
-    for (i in cfg.shovels) {
-        window.$.ajax({
-            url: cfg["shovel-url"] + i,
-            type: "PUT",
-            cache: false,
-            username: 'guest',
-            password: 'guest',
-            dataType: 'json',
-            data: JSON.stringify({"value": cfg.shovels[i]}),
-            success: on_success,
-            error: on_err
-        });
-    }
+    /*
+    window.$.ajax({
+        url: cfg["mq-config-url"],
+        type: "POST",
+        cache: false,
+        username: 'guest',
+        password: 'guest',
+        dataType: 'json',
+        xhrFields: { withCredentials: true },
+        contentType : 'application/json',
+        data: JSON.stringify(cfg["mq-config"])
+    }).done(function (data, textStatus, jqXHR) {
+        console.log("setup shovel successfully");
+        console.log(data);
+        then(data);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        var err = ajaxError(jqXHR, textStatus, errorThrown);
+        console.log("failed to setup shovel");
+        console.log(err);
+        then(null, err);
+    });
+    */
 }
 
 function queryOC(cfg) {
@@ -224,13 +263,7 @@ function queryOC(cfg) {
         window.$.getJSON(cfg['oc-queryUrl'] + id, fun);
     };
 }
-function ajaxError(jqXHR, textStatus, errorThrown){
-    return {
-        "textStatus": textStatus,
-        "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-        "statusCode": jqXHR.statusCode()
-    };
-}
+
 function submitOC(cfg) {
     'use strict';
     return function (order, fun) {
@@ -539,8 +572,22 @@ function resolveConflicts(xthen) {
         next(ajaxError(jqXHR, textStatus, errorThrown));
     });
 }
-function scanOrders(cfg) {
+
+function scanOrders(cfg, resolve) {
     'use strict';
+    function next() {
+        if(resolve) {
+            resolveConflicts(function (){
+                window.setTimeout(function () {
+                    scanOrders(cfg);
+                }, 10000);
+            });
+        } else {
+            window.setTimeout(function () {
+                scanOrders(cfg);
+            }, 10000);                
+        }
+    }
     window.$.ajax({
         url: "/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
         cache: false,
@@ -556,21 +603,13 @@ function scanOrders(cfg) {
         }).map(function (o) {
             return o.doc;
         }), 0, function () {
-            resolveConflicts(function (){
-                window.setTimeout(function () {
-                    scanOrders(cfg);
-                }, 10000);
-            });
+            next();
         });
     }).fail(function (jqXHR, textStatus, errorThrown) {
         scanDBCounter.fail++;
         window.$('#scan_db_fail').html(scanDBCounter.fail);
         console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
-        resolveConflicts(function (){
-            window.setTimeout(function () {
-                scanOrders(cfg);
-            }, 10000);
-        });
+        next();
     });
 }
 function onOrderChange(cfg, last_seq) {

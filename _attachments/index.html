@@ -21,18 +21,18 @@
                     <button id="add_data">Add local data</button> -->
                 </li>
                 <li>
-                    <a href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
+                    <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
                 </li>
                 <li>
-                    <a href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
+                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
                 </li>
                 <li>
-                    <a href="/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
+                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
                     <span>                  </span>
                     <button id="retry_failed_orders">Retry</button>
                 </li>
                 <li>
-                    <a href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
+                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
                 </li>
                 <li>
                     <input id="orderid" type="text"> 
@@ -69,7 +69,10 @@
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
                 receiveOC(cfg);
-                scanOrders(cfg);
+                getLocal('resolve-conflicts', function(data, err){
+                    scanOrders(cfg, data);
+                });
+            //    var x = getAllURLs();
                 getLocal('store-id', function(data, err) {
                     if(data){
                         $('#storeid').val(data);

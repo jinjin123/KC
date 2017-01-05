@@ -1,0 +1,15 @@
+ {
+    "component": "shovel",
+    "name": "hhhhh",
+    "value": {
+        "src-uri": "amqp://ymeng:111111@111.111.111.111/%2fzkf",
+        "src-exchange": "ex_pos",
+        "src-exchange-key": "order2.sssss",
+        "dest-uri": "amqp://",
+        "dest-queue": "sssss.KC",
+        "add-forward-headers":false,
+        "ack-mode": "on-confirm",
+        "delete-after": "never"
+    },
+    "vhost":"/"
+}
