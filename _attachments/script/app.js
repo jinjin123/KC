@@ -1,6 +1,7 @@
 
 function getDate(d){
-    return ( d ? d : (new Date()) ).toLocaleString();
+    d = d ? d : (new Date());
+    return moment(d).format('YYYYMMDDHHmmss');
 }
 
 function topic(cfg, on_err, on_dbg) {
@@ -445,7 +446,7 @@ function getRawLocal(key, then){
 }
 function getLocal(key, then){
     getRawLocal(key, function(data, err){
-        then((data && data.value)?data.value:data, err);
+        then(data ? data.value : data, err);
     });
 }
 

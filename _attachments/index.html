@@ -13,7 +13,9 @@
                 <li>
                     <input id="storeid" type="text"> 
                     <button id="set_storeid">Set Store ID</button>   
-                    <span id="result"></span>                 
+                    <span id="result"></span>     
+                    <label>Delete conflicting records</label>
+                    <input id='resolve-conflicts' type="checkbox"/>            
                 </li>
                 <li>
                     <a href="kc.config.json">Current Configuration</a>
@@ -74,6 +76,12 @@
                 receiveOC(cfg);
                 getLocal('resolve-conflicts', function(data, err){
                     scanOrders(cfg, data);
+                    $('#resolve-conflicts').get(0).checked = data;
+                    $('#resolve-conflicts').click(function(){
+                        setLocal('resolve-conflicts', $('#resolve-conflicts').get(0).checked, function(){
+                            document.location = document.location;
+                        });
+                    });
                 });
                 ordersBefore(30);
                 getLocal('store-id', function(data, err) {
@@ -82,7 +90,7 @@
                     } else {
                         $("#result").text(JSON.stringify(err));
                     }
-                })
+                });
                 $('#retry_failed_orders').click(function () {
                     retryFailed(cfg, function(err){
                         if(err){
