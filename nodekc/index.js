@@ -46,7 +46,7 @@ jsdom.env({
     virtualConsole: jsdom.createVirtualConsole().sendTo(console),
     done: function (err, window) {
         win = window;
-        window.WebSocket = require('websocket').w3cwebsocket;
+        window.WebSocket = require('ws');
         window.setTimeout(function(){
             rewriteGet("kc.config.json", "/config");
             var tmp = win.getAllURLs(), i;
