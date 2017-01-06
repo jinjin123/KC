@@ -2,13 +2,13 @@ function getURL(url, deft){
     function value(x, defv) {
         return x === undefined ? defv : (x === "" ? defv : x);
     }
-    var reg = /^((http)|(https):\/\/)?([^:\/\.]+\.[^:\/]+)(:[0-9]+)?($|(\/([0-9a-zA-Z-_\/\?=&]+))?)/;
+    var reg = /^((http:\/\/)|(https:\/\/))([^\/:]+)(:[0-9]+)?(.*)/;
     var m = url.match(reg);
     if(m){
         var server = value(m[1], deft.protocol)
                     +value(m[4], deft.host)
                     +value(m[5], deft.port)
-                    +value(m[7], deft.path);
+                    +value(m[6], deft.path);
         return server;
     } else {
         return deft.protocol + deft.host + deft.port + deft.path;
@@ -40,6 +40,8 @@ var jsdom = require("jsdom");
 var args = process.argv.splice(2);  
 var baseurl = (args && (args.length > 0)) ? args[0] : "";
 var win;
+console.log(getKCURL(baseurl, "index.html"));
+console.log('--------------------------------');
 jsdom.env({
     url: getKCURL(baseurl, "index.html"),
     scripts: [],
