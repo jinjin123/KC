@@ -146,15 +146,12 @@ function deploy(){
                 console.log(t[i].data);
                 deployOne(t, i+1);
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                console.log('---------error----------');
+                console.log('----------error----------');
                 console.log('Cannot deploy code to ' + t[i].name);
                 console.log(t[i].data);
                 deployOne(t, i+1);
             });
-        } else {
-
-        }
-
+        } 
     }
     window.$.getJSON("kc.target.json", function (result) {
         deployOne(result.target, 0);
@@ -245,12 +242,9 @@ function loadConfig(fun) {
         }
     });
 }
-function ordersBefore(x, fun) {
-    var now = new Date();
-    now.setDate(now.getDate()-x);
-    now = getDate(now);
-    window.$.ajax({
-        url:'/orders/_design/kc/_view/timestamp?endkey=' + encodeURI(now),
+function orders(query, fun){
+    return window.$.ajax({
+        url:'/orders/_design/kc/_view/' + query,
         cache: false,
         timeout: 60000
     }).done(function (data, textStatus, jqXHR) {
@@ -267,6 +261,42 @@ function ordersBefore(x, fun) {
             console.log('---------error----------');
         }
     });
+
+}
+function deleteOrders(data, then){
+    if(data){
+        data = JSON.parse(data);
+        var tmp = {
+            "docs":[]
+        };
+        for(var i in data.rows){
+            for(var j in data.rows[i].value){
+                tmp.docs.push({
+                    "_id": data.rows[i].id,
+                    "_rev":data.rows[i].value[j],
+                    "_deleted": true
+                });
+            }
+        }
+        return window.$.ajax({
+            url:"/orders/_bulk_docs",
+            method:"POST",
+            dataType:"json",
+            contentType : 'application/json',
+            data:JSON.stringify(tmp)
+        }).done(function (data, textStatus, jqXHR) {
+            then(data);
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            var err = ajaxError(jqXHR, textStatus, errorThrown);
+            then(null, err);
+        });
+    }
+}
+function ordersBefore(x, fun) {
+    var now = new Date();
+    now.setDate(now.getDate()-x);
+    now = getDate(now);
+    return orders('timestamp?endkey=' + encodeURI(now), fun);
 }
 function ajaxError(jqXHR, textStatus, errorThrown){
     return {

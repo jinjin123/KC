@@ -25,6 +25,7 @@
                     <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
                 </li>
                 <li>
+                    <button id="cleanAll">Delete all orders</button>
                     <button id="clean">Delete order that is older than a month</button>
                     <button id="compact">Compact database</button>
                     <button id="release">Synchronize software</button>
@@ -98,35 +99,32 @@
                 $('#release').click(function(){
                     deploy();
                 });
+                $('#cleanAll').click(function(){
+                    orders('status?endkey=[9999,9999]', function(data, err){
+                        if(data){
+                            deleteOrders(data, function (d, e){
+                                if(d){
+                                    alert("success");
+                                } else {
+                                    console.log(e);
+                                    alert('failed');
+                                }                                
+                            })
+                        } else {
+                            console.log(err);
+                        }
+                    })
+                });
                 $('#clean').click(function(){
                     ordersBefore(30, function(data, err){
                         if(data){
-                            data = JSON.parse(data);
-                            var tmp = {
-                                "docs":[]
-                            };
-                            for(var i in data.rows){
-                                for(var j in data.rows[i].value){
-                                    tmp.docs.push({
-                                        "_id": data.rows[i].id,
-                                        "_rev":data.rows[i].value[j],
-                                        "_deleted": true
-                                    });
+                            deleteOrders(data, function(d, e){
+                                if(d){
+                                    alert("success");
+                                } else {
+                                    console.log(e);
+                                    alert('failed');
                                 }
-                            }
-                            window.$.ajax({
-                                url:"/orders/_bulk_docs",
-                                method:"POST",
-                                dataType:"json",
-                                contentType : 'application/json',
-                                data:JSON.stringify(tmp)
-                            }).done(function (data, textStatus, jqXHR) {
-                                console.log(data);
-                                alert("success");
-                            }).fail(function (jqXHR, textStatus, errorThrown) {
-                                var err = ajaxError(jqXHR, textStatus, errorThrown);
-                                console.log(err);
-                                alert('failed')
                             });
                         } else {
                             console.log(err);

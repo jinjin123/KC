@@ -6,6 +6,6 @@
  */
 function(doc) {
     if (doc._conflicts) {
-        emit([doc._rev].concat(doc._conflicts), null);
+        emit([doc._rev].concat(doc._conflicts), [doc._rev].concat(doc._conflicts));
     }
 }
