@@ -40,16 +40,20 @@
         "exchanges":[],
         "bindings":[]
     },
-    "oc-test":{
-        "oc-host":"172.16.104.124:8081",
-        "oc-token":"KMn8Ox8nJWW88iMf485535189v66I9bPVesy9q6280epf6EKb3H0ptt9WOD70M80",
-        "oc-submitUrl":"http://{{oc-host}}/oc2/api/submitNewPosOrder.html?access_token={{oc-token}}",
-        "oc-modifyUrl":"http://{{oc-host}}/oc2/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
-        "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid="        
-    },
-    "oc-host":"172.16.103.192:8080",
-    "oc-token":"hty4B91i8S02je45FL07AnN29UB7Hu2mZ2t1864Hk29Oji06M1397212281Th717",
-    "oc-submitUrl":"http://{{oc-host}}/api/submitNewPosOrder.html?access_token={{oc-token}}",
-    "oc-modifyUrl":"http://{{oc-host}}/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
-    "oc-queryUrl":"http://{{oc-host}}/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid="
+
+    "oc-host":"172.16.104.124:8081",
+    "oc-token":"KMn8Ox8nJWW88iMf485535189v66I9bPVesy9q6280epf6EKb3H0ptt9WOD70M80",
+    "oc-submitUrl":"http://{{oc-host}}/oc2/api/submitNewPosOrder.html?access_token={{oc-token}}",
+    "oc-modifyUrl":"http://{{oc-host}}/oc2/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
+    "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
+    "oc-listUrl":"http://{{oc-host}}/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
+
+    "oc-prod":{
+        "oc-host":"172.16.103.192:8080",
+        "oc-token":"hty4B91i8S02je45FL07AnN29UB7Hu2mZ2t1864Hk29Oji06M1397212281Th717",
+        "oc-submitUrl":"http://{{oc-host}}/api/submitNewPosOrder.html?access_token={{oc-token}}",
+        "oc-modifyUrl":"http://{{oc-host}}/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
+        "oc-queryUrl":"http://{{oc-host}}/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",
+        "oc-listUrl":"http://{{oc-host}}/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999"
+    }
 }
