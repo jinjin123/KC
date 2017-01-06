@@ -138,18 +138,16 @@ function deploy(){
                 method:"POST",
                 contentType : 'application/json',
                 dataType:"json",
-                data:JSON.stringify({
-                    create_target:true,
-                    source:"orders",
-                    target:t[i].url
-                })
+                data:JSON.stringify(t[i].data)
             }).done(function (data, textStatus, jqXHR) {
-                console.log('------------------------');
+                console.log('---------success---------');
                 console.log(data);
+                console.log(t[i].data);
                 deployOne(t, i+1);
             }).fail(function (jqXHR, textStatus, errorThrown) {
                 console.log('---------error----------');
-                console.log('Cannot deploy code to ' + t[i].url);
+                console.log('Cannot deploy code to ' + t[i].name);
+                console.log(t[i].data);
                 deployOne(t, i+1);
             });
         } else {
