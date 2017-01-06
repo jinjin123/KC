@@ -7,36 +7,7 @@
                 "source":"orders",
                 "filter":"kc/design",
                 "target":"http://172.19.130.118:5984/orders"
-
             }
         }
-        /*,{
-            "name":"chencun",
-            "data":{
-                "create_target":true,
-                "source":"orders",
-                "filter":"kc/design",
-                "target":"http://172.17.251.2:5984/orders"
-
-            }
-        },{
-            "name":"sparkpad",
-            "data":{
-                "create_target":true,
-                "source":"orders",
-                "filter":"kc/design",
-                "target":"http://172.28.13.199:5984/orders"
-
-            }
-        },{
-            "name":"zhonghua",
-            "data":{
-                "create_target":true,
-                "source":"orders",
-                "filter":"kc/design",
-                "target":"http://172.17.16.2:5984/orders"
-
-            }
-        }*/
     ]
 }

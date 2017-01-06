@@ -130,6 +130,7 @@ function receiveOC(cfg) {
         }, from_oc["dest-queue"]);
     }
 }
+
 function deploy(){
     function deployOne(t, i){
         if(i<t.length) {
