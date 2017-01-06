@@ -130,6 +130,37 @@ function receiveOC(cfg) {
         }, from_oc["dest-queue"]);
     }
 }
+function deploy(){
+    function deployOne(t, i){
+        if(i<t.length) {
+            window.$.ajax({
+                url:"/_replicate",
+                method:"POST",
+                contentType : 'application/json',
+                dataType:"json",
+                data:JSON.stringify({
+                    create_target:true,
+                    source:"orders",
+                    target:t[i].url
+                })
+            }).done(function (data, textStatus, jqXHR) {
+                console.log('------------------------');
+                console.log(data);
+                deployOne(t, i+1);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                console.log('---------error----------');
+                console.log('Cannot deploy code to ' + t[i].url);
+                deployOne(t, i+1);
+            });
+        } else {
+
+        }
+
+    }
+    window.$.getJSON("kc.target.json", function (result) {
+        deployOne(result.target, 0);
+    });    
+}
 
 function loadConfig(fun) {
     'use strict';
@@ -250,6 +281,32 @@ function getMQConfig(cfg){
         url: cfg["mq-config-url"],
         data: cfg["mq-config"]
     };
+}
+function compact(then){
+    window.$.ajax({
+        url:"/orders/_compact",
+        method:"POST",
+        dataType:"json",
+        data:""
+    }).done(function (data, textStatus, jqXHR) {
+        window.$.ajax({
+            url:"/orders/_compact/kc",
+            method:"POST",
+            dataType:"json",
+            data:""
+        }).done(function (data, textStatus, jqXHR) {
+            console.log(data);
+            then(data);
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            var err = ajaxError(jqXHR, textStatus, errorThrown);
+            console.log(err);
+            then(null, err);
+        });
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        var err = ajaxError(jqXHR, textStatus, errorThrown);
+        console.log(err);
+        then(null, err);
+    });
 }
 function setupShovel(cfg, then) {
     'use strict';

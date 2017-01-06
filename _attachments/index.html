@@ -24,9 +24,9 @@
                     <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
                 </li>
                 <li>
-                    <a name="clean" class="url" href="/orders/_design/kc/_view/timestamp?endkey=">Delete order that is older than a month</a>
-                    <a name="compact" class="url" href="">Compact database</a>
-                    <a name="release" class="url" href="">Synchronize software</a>
+                    <button id="clean">Delete order that is older than a month</button>
+                    <button id="compact">Compact database</button>
+                    <button id="release">Synchronize software</button>
                     <a name="compareOC" class="url" href="">Compare data with OC</a>
                     <a name="comparePOS" class="url" href="">Compare data with POS</a>                    
                 </li>
@@ -83,13 +83,54 @@
                         });
                     });
                 });
-                ordersBefore(30);
+                
                 getLocal('store-id', function(data, err) {
                     if(data){
                         $('#storeid').val(data);
                     } else {
                         $("#result").text(JSON.stringify(err));
                     }
+                });
+                $('#compact').click(function(){
+                    compact();
+                });
+                $('#release').click(function(){
+                    deploy();
+                });
+                $('#clean').click(function(){
+                    ordersBefore(30, function(data, err){
+                        if(data){
+                            data = JSON.parse(data);
+                            var tmp = {
+                                "docs":[]
+                            };
+                            for(var i in data.rows){
+                                for(var j in data.rows[i].value){
+                                    tmp.docs.push({
+                                        "_id": data.rows[i].id,
+                                        "_rev":data.rows[i].value[j],
+                                        "_deleted": true
+                                    });
+                                }
+                            }
+                            window.$.ajax({
+                                url:"/orders/_bulk_docs",
+                                method:"POST",
+                                dataType:"json",
+                                contentType : 'application/json',
+                                data:JSON.stringify(tmp)
+                            }).done(function (data, textStatus, jqXHR) {
+                                console.log(data);
+                                alert("success");
+                            }).fail(function (jqXHR, textStatus, errorThrown) {
+                                var err = ajaxError(jqXHR, textStatus, errorThrown);
+                                console.log(err);
+                                alert('failed')
+                            });
+                        } else {
+                            console.log(err);
+                        }
+                    });
                 });
                 $('#retry_failed_orders').click(function () {
                     retryFailed(cfg, function(err){
@@ -165,37 +206,4 @@
             });
         });
     </script>
-
-
-<!-- templates used by app.js -->
-    <script id="new-message" type="text/x-mustache" charset="utf-8">
-        <div class="avatar">
-            {{#gravatar_url}}<img src="{{gravatar_url}}"/>{{/gravatar_url}}
-            <div class="name">
-                {{name}}
-            </div>
-        </div>
-        <form id="create-message">
-            <label>New message from {{nickname}}: <input type="text" name="message" size=60 value=""></label>
-        </form>
-        <div style="clear:left;"></div>
-    </script>
-
-    <script id="recent-messages" type="text/x-mustache" charset="utf-8">
-        <h3>Recent Messages</h3>
-        <ul id="items">
-            {{#items}}
-            <li>
-                <div class="avatar">
-                    {{#gravatar_url}}<img src="{{gravatar_url}}" alt="{{name}}"/>{{/gravatar_url}}
-                    <div class="name">
-                        {{nickname}}
-                    </div>
-                </div>
-                <p>{{message}}</p>
-                <div style="clear:left;"></div>
-            </li>
-            {{/items}}
-        </ul>
-  </script>
 </html>
