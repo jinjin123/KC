@@ -8,6 +8,14 @@
                 "filter":"kc/design",
                 "target":"http://172.19.130.118:5984/orders"
             }
+        },{
+            "name":"victory2",
+            "data":{
+                "create_target":true,
+                "source":"orders",
+                "filter":"kc/design",
+                "target":"http://172.19.130.221:5984/orders"
+            }
         }
     ]
 }
