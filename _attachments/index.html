@@ -29,8 +29,8 @@
                     <button id="clean">Delete order that is older than a month</button>
                     <button id="compact">Compact database</button>
                     <button id="release">Synchronize software</button>
-                    <a name="compareOC" class="url" href="">Compare data with OC</a>
-                    <a name="comparePOS" class="url" href="">Compare data with POS</a>                    
+                    <button id="compareOC">Compare data with OC</button>
+                    <button id="comparePOS">Compare data with POS</button>                    
                 </li>
                 <li>
                     <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
@@ -94,11 +94,41 @@
                     }
                 });
                 $('#compact').click(function(){
-                    compact();
+                    compact(function(data, err){
+                        if(err){
+                            alert(JSON.stringify(err));
+                            //console.log(err);
+                        } else {
+                            alert(JSON.stringify(data));
+                            //console.log(data);
+                        } 
+                    });
                 });
                 $('#release').click(function(){
-                    deploy();
+                    deploy(function(data, err){
+                        if(err){
+                            alert(JSON.stringify(err));
+                            //console.log(err);
+                        } else {
+                            alert(JSON.stringify(data));
+                            //console.log(data);
+                        } 
+                    });
                 });
+                $('#compareOC').click(function(){
+                    compareOC(cfg, function(data, err){
+                        if(err){
+                            alert(JSON.stringify(err));
+                            //console.log(err);
+                        } else {
+                            alert(JSON.stringify(data));
+                            //console.log(data);
+                        }                         
+                    })
+                });
+                $('#comparePOS').click(function(){
+
+                });                
                 $('#cleanAll').click(function(){
                     orders('status?endkey=[9999,9999]', function(data, err){
                         if(data){

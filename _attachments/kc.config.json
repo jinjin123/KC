@@ -1,8 +1,12 @@
 {
     "store-id":"{%store-id%}",
     "bus-host":"ws://{{hostname}}:15674/ws",
-    "mq-host":"172.16.104.123:8082",
-    "mq-host-prod":"172.16.102.122:8082",
+    "data-center-mq-host":"172.16.104.123:8082",
+    "data-center-mq-config-url":"http://guest:guest@{{data-center-mq-host}}:15672/api/definitions",
+    "data-center-mq-config":{
+
+    },
+    "data-center-mq-host-prod":"172.16.102.122:8082",
     "mq-config-url":"http://guest:guest@{{hostname}}:15672/api/definitions",
     "mq-config" : {
         "rabbit_version":"3.6.5",
@@ -22,7 +26,7 @@
         }],
         "parameters":[{
             "value":{
-                "src-uri":"amqp://ymeng:111111@{{mq-host}}/%2fzkf",
+                "src-uri":"amqp://ymeng:111111@{{data-center-mq-host}}/%2fzkf",
                 "src-exchange":"ex_pos",
                 "src-exchange-key":"order2.{{store-id}}",
                 "dest-uri":"amqp://",
@@ -46,7 +50,7 @@
     "oc-submitUrl":"http://{{oc-host}}/oc2/api/submitNewPosOrder.html?access_token={{oc-token}}",
     "oc-modifyUrl":"http://{{oc-host}}/oc2/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
     "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
-    "oc-listUrl":"http://{{oc-host}}/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
+    "oc-listUrl":"http://{{oc-host}}/oc2/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
 
     "oc-prod":{
         "oc-host":"172.16.103.192:8080",
