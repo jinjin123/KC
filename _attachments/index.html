@@ -93,38 +93,21 @@
                         $("#result").text(JSON.stringify(err));
                     }
                 });
+                function log_result(data, err){
+                    if(data){
+                        alert("success\n" + JSON.stringify(data));
+                    } else {
+                        alert("failed\n" + JSON.stringify(err));
+                    }                     
+                }
                 $('#compact').click(function(){
-                    compact(function(data, err){
-                        if(err){
-                            alert(JSON.stringify(err));
-                            //console.log(err);
-                        } else {
-                            alert(JSON.stringify(data));
-                            //console.log(data);
-                        } 
-                    });
+                    compact(log_result);
                 });
                 $('#release').click(function(){
-                    deploy(function(data, err){
-                        if(err){
-                            alert(JSON.stringify(err));
-                            //console.log(err);
-                        } else {
-                            alert(JSON.stringify(data));
-                            //console.log(data);
-                        } 
-                    });
+                    deploy(log_result);
                 });
                 $('#compareOC').click(function(){
-                    compareOC(cfg, function(data, err){
-                        if(err){
-                            alert(JSON.stringify(err));
-                            //console.log(err);
-                        } else {
-                            alert(JSON.stringify(data));
-                            //console.log(data);
-                        }                         
-                    })
+                    compareOC(cfg, log_result);
                 });
                 $('#comparePOS').click(function(){
 
@@ -132,43 +115,19 @@
                 $('#cleanAll').click(function(){
                     orders('status?endkey=[9999,9999]', function(data, err){
                         if(data){
-                            deleteOrders(data, function (d, e){
-                                if(d){
-                                    alert("success");
-                                } else {
-                                    console.log(e);
-                                    alert('failed');
-                                }                                
-                            })
-                        } else {
-                            console.log(err);
+                            deleteOrders(data, log_result)
                         }
                     })
                 });
                 $('#clean').click(function(){
                     ordersBefore(30, function(data, err){
                         if(data){
-                            deleteOrders(data, function(d, e){
-                                if(d){
-                                    alert("success");
-                                } else {
-                                    console.log(e);
-                                    alert('failed');
-                                }
-                            });
-                        } else {
-                            console.log(err);
+                            deleteOrders(data, log_result);
                         }
                     });
                 });
                 $('#retry_failed_orders').click(function () {
-                    retryFailed(cfg, function(err){
-                        if(err){
-                            alert(err);
-                        } else {
-                            alert('Operation finished');
-                        }
-                    });
+                    retryFailed(cfg, log_result);
                 });
                 $('#set_storeid').click(function() {
                     setLocal('store-id', $('#storeid').val(), function(data, err) {

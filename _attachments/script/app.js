@@ -7,10 +7,14 @@ function ajax(options, then){
     if (typeof(options) === 'object') {
         if(options) {
             function ajaxError(jqXHR, textStatus, errorThrown){
+                //var status_code = jqXHR.statusCode();
                 return {
                     "textStatus": textStatus,
                     "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-                    "statusCode": jqXHR.statusCode()
+                    "responseText": jqXHR.responseText,
+                    "status":jqXHR.status,
+                    "getAllResponseHeaders":jqXHR.getAllResponseHeaders(),
+                    "options":options
                 };
             }
             var verbose = options.verbose;
@@ -29,7 +33,6 @@ function ajax(options, then){
                 if(verbose) {
                     console.log('---------error----------');
                     console.log(err);
-                    console.log(options);
                 }
                 if(typeof(then) === 'function') { 
                     then(null,err);
@@ -54,17 +57,11 @@ function topic(cfg, on_err, on_dbg) {
     ret.receive = function (on_msg, key, uid) {
         on_msg = typeof (on_msg) === "function" ? on_msg : function (x) {console.log(x); };
         status_str = 'Try connect to ' + cfg["bus-host"];
-        if (uid) {
-            client.connect('guest', 'guest', function () {
-                status_str = 'Connected to ' + cfg["bus-host"] + '/queue/' + key;
-                sub = client.subscribe('/topic/' + key, on_msg, {id: uid, durable: true, "auto-delete": false});
-            }, on_err, '/');
-        } else {
-            client.connect('guest', 'guest', function () {
-                status_str = 'Connected to ' + cfg["bus-host"] + '/queue/' + key;
-                sub = client.subscribe('/topic/' + key, on_msg, {"auto-delete": false});
-            }, on_err, '/');
-        }
+        client.connect('guest', 'guest', function () {
+            status_str = 'Connected to ' + cfg["bus-host"] + '/topic/' + key;
+            sub = client.subscribe('/topic/' + key, on_msg, 
+                uid ? {id: uid, durable: true, "auto-delete": false} : {"auto-delete": false});
+        }, on_err, '/');
     };
     ret.send = function (key, msg) {
         client.send("/topic/" + key, {}, msg);
@@ -75,8 +72,6 @@ function topic(cfg, on_err, on_dbg) {
             sub = null;
         }
         client.disconnect(function (x) {
-//            console.log(x);
-//            ws.close();
         });
     };
     return ret;
@@ -173,7 +168,7 @@ function compareOC(cfg, then){
 function comparePOS(cfg, then){
 
 }
-function deploy(then){
+function deploy(para, then){
     function deployOne(t, i){
         if(i<t.length) {
             ajax({
@@ -193,9 +188,18 @@ function deploy(then){
             });
         } 
     }
-    window.$.getJSON("kc.target.json", function (result) {
-        deployOne(result.target, 0);
-    });    
+    if(typeof(para) === 'function') {
+        then = para;
+        para = undefined;
+    }
+    para = para ? para : "kc.target.json"; 
+    if(typeof(para) === 'string') {
+        window.$.getJSON(para, function (result) {
+            deployOne(result.target, 0);
+        });    
+    } else if(typeof(para) === 'array') {
+        deployOne(result.target, 0);        
+    } 
 }
 
 function loadConfig(fun) {
@@ -755,12 +759,12 @@ function retryFailed(cfg, then) {
             return o.doc;
         }), 0, function () {
             if(typeof(then) === "function") {
-                then();
+                then("success");
             }
         });        
     }).fail(function(xhr, err){
         if(typeof(then) === "function") {
-            then(err);
+            then(null, err);
         }
     })
 }
