@@ -31,6 +31,15 @@ function getRootURL(url, file){
     });
 }
 
+function configMQ(settings, then) {
+    request.post({
+        url:settings.url, 
+        body: JSON.stringify(settings.data), 
+        headers:{
+            "Content-Type":"application/json"
+        }
+    }, then);
+}
 
 
 var URL = require('url');
@@ -56,19 +65,27 @@ jsdom.env({
                 var x = tmp[i];
                 rewriteGet(x.href, '/' + x.name);
             }
-            tmp = win.getMQConfig(win.CONFIG);
-            request.post({
-                url:tmp.url, 
-                body: JSON.stringify(tmp.data), 
-                headers:{
-                    "Content-Type":"application/json"
-                }
-            }, function(err, httpResponse, body) {
-                if (err) {
-                    console.error('upload failed:', err);
-                } else {
-                    console.log('Config RabbitMQ successful!  Server responded with:', body);
-                }
+            app.get("/config-store-mq", function(req, res){
+                configMQ(win.getMQConfig(win.CONFIG),function(err, httpResponse, body) {
+                    if (err) {
+                        res.write('upload failed:', err);
+                        console.error('upload failed:', err);
+                    } else {
+                        res.write('Config RabbitMQ successful!  Server responded with:', body);
+                        console.log('Config RabbitMQ successful!  Server responded with:', body);
+                    }
+                });
+            });
+            app.get("/config-data-center-mq", function(req, res){
+                configMQ(win.getDCMQConfig(win.CONFIG), function(err, httpResponse, body) {
+                    if (err) {
+                        res.write('upload failed:', err);
+                        console.error('upload failed:', err);
+                    } else {
+                        res.write('Config RabbitMQ successful!  Server responded with:', body);
+                        console.log('Config RabbitMQ successful!  Server responded with:', body);
+                    }
+                });
             });
             app.get("/retry", function(req, res) {
                 win.retryFailed(win.CONFIG, function (err) {
@@ -85,7 +102,6 @@ jsdom.env({
                 var newurl = win.getOCQueryURL(win.CONFIG, URL.parse(req.url, true).orderid);
                 request(newurl).pipe(res);
             });
-
             app.listen(3000, function(){
                 console.log("running on port 3000") 
             });            

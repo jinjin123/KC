@@ -328,6 +328,12 @@ function getMQConfig(cfg){
         data: cfg["mq-config"]
     };
 }
+function getDCMQConfig(cfg){
+    return {
+        url:cfg['data-center-mq-config-url'],
+        data: cfg['data-center-mq-config']
+    }
+}
 function compact(then){
     ajax({
         url:"/orders/_compact",
