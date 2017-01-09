@@ -16,7 +16,8 @@
                     <span id="result"></span>     
                     <label>Delete conflicting records</label>
                     <input id='resolve-conflicts' type="checkbox"/>      
-                    <a href="/_utils/database.html?orders">CouchDB UI</a>      
+                    <a href="/_utils/database.html?orders">CouchDB UI</a>
+                    <button id="load-config">Load configuration</button>
                 </li>
                 <li>
                     <a href="kc.config.json">Current Configuration</a>
@@ -75,17 +76,14 @@
         $(document).ready(function() {
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
-                receiveOC(cfg);
                 getLocal('resolve-conflicts', function(data, err){
-                    scanOrders(cfg, data);
                     $('#resolve-conflicts').get(0).checked = data;
-                    $('#resolve-conflicts').click(function(){
-                        setLocal('resolve-conflicts', $('#resolve-conflicts').get(0).checked, function(){
+                    $('#resolve-conflicts').click(function() {
+                        setLocal('resolve-conflicts', $('#resolve-conflicts').get(0).checked, function() {
                             document.location = document.location;
                         });
                     });
-                });
-                
+                });                
                 getLocal('store-id', function(data, err) {
                     if(data){
                         $('#storeid').val(data);
@@ -110,7 +108,16 @@
                     compareOC(cfg, log_result);
                 });
                 $('#comparePOS').click(function(){
-
+                    if(!window.mq) {
+                        window.mq = receivePOS(cfg, function (msg){
+                            console.log(msg);
+                        }, function(err){
+                            delete window.mq;
+                            console.log(err);
+                        });
+                    } else {
+                        window.mq.send('*', 'request', 'hello world');
+                    }
                 });                
                 $('#cleanAll').click(function(){
                     orders('status?endkey=[9999,9999]', function(data, err){

@@ -7,7 +7,6 @@ function ajax(options, then){
     if (typeof(options) === 'object') {
         if(options) {
             function ajaxError(jqXHR, textStatus, errorThrown){
-                //var status_code = jqXHR.statusCode();
                 return {
                     "textStatus": textStatus,
                     "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
@@ -114,15 +113,55 @@ function queue(cfg, on_err, on_dbg) {
     };
     return ret;
 }
+
+function run(){
+    loadConfig(function(cfg){
+        getLocal('resolve-conflicts', function(data, err){
+            receiveOC(cfg);
+            scanOrders(cfg, data);
+        }); 
+    });
+}
 function getAllURLs(){
     var result = [];
     window.$('.url').each(function(i, item){
         result.push({
+            type:"anchor",
             name: item.name, 
-            href: item.href
+            href: item.href,
+            function:null
         });
     });
     return result;
+}
+function queryPOS(cfg){
+    var mq = topic(cfg)
+}
+function receivePOS(cfg, on_reply, on_error){
+    var mq = topic(cfg, function (x){
+        mq.close();
+        if(typeof(on_error) === 'function') {
+            on_error.call(mq, x);
+        } else  {
+            window.$('#stomp_info').html(x);
+            console.log(x);
+        }
+    }, function(err){
+        window.$('#stomp_info').html(err);
+        console.log(err);        
+    });
+    mq.receive(function(msg){
+        if(typeof(on_reply) === 'function') {
+            on_reply.call(mq, msg);
+        } else {
+            console.log(msg);
+        }
+    }, 'kc2.*.*', 'kc2');
+    var send = mq.send;
+    mq.send = function (to, evt, msg) {
+        return send(to + '.kc2.' + evt, msg);
+    }
+    return mq;
 }
 function receiveOC(cfg) {
     var mq = queue(cfg, function (x) {
@@ -139,7 +178,7 @@ function receiveOC(cfg) {
         var i;
         for(i=0 ;i < cfg['mq-config'].parameters.length; ++i){
             if(cfg['mq-config'].parameters[i].name === name){
-                return cfg['mq-config'].parameters[i];
+                return cfg['mq-config'].parameters[i].value;
             }        
         }
     }
@@ -158,7 +197,9 @@ function receiveOC(cfg) {
             });
         }, from_oc["dest-queue"]);
     }
+    return mq;
 }
+
 function compareOC(cfg, then){
     ajax({
         url:cfg['oc-listUrl'],
@@ -204,6 +245,7 @@ function deploy(para, then){
 
 function loadConfig(fun) {
     'use strict';
+    window.Mustache.clearCache();
     function walk(x, acc, func) {
         if(typeof(func) === "function") {
             var i;
@@ -278,7 +320,9 @@ function loadConfig(fun) {
                 window.Mustache.clearCache();
                 var xcfg = render(result, result);
                 setupShovel(xcfg, function(data, err) {
-                    fun(xcfg);
+                    setLocal("store-configuration", xcfg, function(data, err){
+                        fun(xcfg);
+                    });
                 });
             });
         } else {

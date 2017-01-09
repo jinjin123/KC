@@ -48,7 +48,7 @@ var express = require("express");
 var jsdom = require("jsdom");
 var args = process.argv.splice(2);  
 var baseurl = (args && (args.length > 0)) ? args[0] : "";
-var win;
+
 console.log(getKCURL(baseurl, "index.html"));
 console.log('--------------------------------');
 jsdom.env({
@@ -59,14 +59,21 @@ jsdom.env({
         win = window;
         window.WebSocket = require('ws');
         window.setTimeout(function(){
-            rewriteGet("kc.config.json", "/config");
-            var tmp = win.getAllURLs(), i;
+            var tmp = window.getAllURLs(), i;
             for(i in tmp) {
                 var x = tmp[i];
-                rewriteGet(x.href, '/' + x.name);
+                if(x.type === 'anchor') {
+                    rewriteGet(x.href, '/' + x.name);
+                } else if (x.type === 'function'){
+                    app.get('/' + x.name, function(req, res){
+                        if(typeof(x.function) === 'function'){
+                            x.function.call(app, req, res, tmp);
+                        }
+                    });
+                }
             }
             app.get("/config-store-mq", function(req, res){
-                configMQ(win.getMQConfig(win.CONFIG),function(err, httpResponse, body) {
+                configMQ(window.getMQConfig(win.CONFIG),function(err, httpResponse, body) {
                     if (err) {
                         res.write('upload failed:', err);
                         console.error('upload failed:', err);
@@ -77,7 +84,7 @@ jsdom.env({
                 });
             });
             app.get("/config-data-center-mq", function(req, res){
-                configMQ(win.getDCMQConfig(win.CONFIG), function(err, httpResponse, body) {
+                configMQ(window.getDCMQConfig(win.CONFIG), function(err, httpResponse, body) {
                     if (err) {
                         res.write('upload failed:', err);
                         console.error('upload failed:', err);
@@ -87,22 +94,10 @@ jsdom.env({
                     }
                 });
             });
-            app.get("/retry", function(req, res) {
-                win.retryFailed(win.CONFIG, function (err) {
-                    if (err) {
-                        res.write("" + err);
-                    } else {
-                        res.write("ok");
-                    }
-                    res.end();
-                });
-                res.write("Please wait ...");
-            });
-            app.get("/order", function(req, res) {
-                var newurl = win.getOCQueryURL(win.CONFIG, URL.parse(req.url, true).orderid);
-                request(newurl).pipe(res);
-            });
             app.listen(3000, function(){
+                setTimeout(function(){
+                    window.run();
+                }, 5000);
                 console.log("running on port 3000") 
             });            
         }, 1000);
@@ -124,8 +119,5 @@ function rewriteGet(oldp, newp) {
     });
 }
 
-//rewriteGet("_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true", "/success");
-//rewriteGet("_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true", "/failed");
-//rewriteGet("_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true", "/waiting");
 
 
