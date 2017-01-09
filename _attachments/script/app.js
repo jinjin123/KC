@@ -117,8 +117,10 @@ function queue(cfg, on_err, on_dbg) {
 function run(){
     loadConfig(function(cfg){
         getLocal('resolve-conflicts', function(data, err){
-            receiveOC(cfg);
-            scanOrders(cfg, data);
+            setLocal("store-configuration", cfg, function(data, err){
+               receiveOC(cfg);
+                scanOrders(cfg, data);
+            });
         }); 
     });
 }
@@ -320,9 +322,7 @@ function loadConfig(fun) {
                 window.Mustache.clearCache();
                 var xcfg = render(result, result);
                 setupShovel(xcfg, function(data, err) {
-                    setLocal("store-configuration", xcfg, function(data, err){
-                        fun(xcfg);
-                    });
+                    fun(xcfg);
                 });
             });
         } else {
