@@ -23,7 +23,7 @@
                     <a href="kc.config.json">Current Configuration</a>
                     <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
                     <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
-                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
+                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
                 </li>
                 <li>
                     <button id="cleanAll">Delete all orders</button>
@@ -34,7 +34,7 @@
                     <button id="comparePOS">Compare data with POS</button>                    
                 </li>
                 <li>
-                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
+                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
                     <span>                  </span>
                     <button id="retry_failed_orders">Retry</button>
                 </li>
@@ -156,6 +156,10 @@
 
                 //var db = new PouchDB('orders');
                 /*
+                //use store-id as the beginning of routine key
+
+                //use
+                
                 PouchDB.sync('orders', 'http://172.28.13.199:5984/orders',{
                     live: true,
                     retry: true

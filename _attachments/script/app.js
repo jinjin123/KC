@@ -114,12 +114,19 @@ function queue(cfg, on_err, on_dbg) {
     return ret;
 }
 
-function run(){
+function run(then){
     loadConfig(function(cfg){
         getLocal('resolve-conflicts', function(data, err){
-            setLocal("store-configuration", cfg, function(data, err){
-               receiveOC(cfg);
-                scanOrders(cfg, data);
+            setLocal("configuration", cfg, function(data, err){
+                if(typeof(then) === 'function') {
+                    then(cfg, function(){
+                        receiveOC(cfg);
+                        scanOrders(cfg, data);
+                    })    
+                } else {
+                    receiveOC(cfg);
+                    scanOrders(cfg, data);                    
+                }
             });
         }); 
     });
@@ -158,10 +165,10 @@ function receivePOS(cfg, on_reply, on_error){
         } else {
             console.log(msg);
         }
-    }, 'kc2.*.*', 'kc2');
+    }, cfg['store-id'] + '.kc2.*.*', 'kc2');
     var send = mq.send;
     mq.send = function (to, evt, msg) {
-        return send(to + '.kc2.' + evt, msg);
+        return send(cfg['store-id'] + '.' + to + '.kc2.' + evt, msg);
     }
     return mq;
 }
@@ -726,7 +733,7 @@ function scanOrders(cfg, resolve) {
         }
     }
     ajax({
-        url: "/orders/_design/kc/_view/status?startkey=[0,4]&endkey=[0,100]&include_docs=true&conflicts=true",
+        url: "/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true",
         cache: false,
         dataType: 'json'
     }, function(data, err) {
@@ -790,7 +797,7 @@ function onOrderChange(cfg, last_seq) {
 
 function retryFailed(cfg, then) {
     'use strict';
-    window.$.getJSON("/orders/_design/kc/_view/status?startkey=[2,4]&endkey=[9999,100]&include_docs=true&conflicts=true", function(result){
+    window.$.getJSON("/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[9999,100]&include_docs=true&conflicts=true", function(result){
         var tmp = result.rows.filter(function (o) {
             if (!o.doc.deleted) {
                 if (o.doc.order) {
