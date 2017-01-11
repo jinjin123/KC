@@ -6,7 +6,7 @@
                 "create_target":true,
                 "source":"orders",
                 "filter":"kc/design",
-                "target":"http://172.19.130.118:5984/orders"
+                "target":"http://172.19.130.142:5984/orders"
             }
         },{
             "name":"victory2",

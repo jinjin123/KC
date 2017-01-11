@@ -48,6 +48,28 @@
     "oc-modifyUrl":"http://{{oc-host}}/oc2/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
     "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
     "oc-listUrl":"http://{{oc-host}}/oc2/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
+    "posCfg":{
+        "kcName":"kc2",
+        "storejgId":4246,
+        "orderPrefix":"TEST",
+        "DE_posID":"7570",
+        "orderSource":"st",
+        "orderplatformsource":"stpos",
+        "identifyingcodeLen" : 4,
+        "security_code" : "testapi" ,
+        "deToken" : "ef5940407a519f7e0f566bbfb2230a0331840275" , 
+        "deIp" : "172.16.104.126:8086/de",
+        "deTestIp" : "gfs.4006927927.com:8086/de",
+        "ocIp" : "{{oc-host}}" ,
+        "ocToken" : "{{oc-token}}",
+        "erpIp" : "172.16.104.126:8086/zkf-erp" ,
+        "erpToken" : "49c84bd3-22f0-4724-9fb7-f26d5ec67e63" ,
+        "crmIp" : "172.16.104.126:8086/zkf-crm" ,
+        "crmToken" : "W/bkcCjGNmzjS/l6DTwxDA==",
+        "pmtIp" : "payment.dplor.com" ,
+        "pmtKey" : "naWNUNW5pzmzISiGaHPBgMgtr",
+        "pmtSecurity" : "5bpjjQWp26cll0ixzKKHZOLnt"
+    },
 
     "oc-prod":{
         "oc-host":"172.16.103.192:8080",
@@ -122,6 +144,13 @@
                 "write": ".*",
                 "read": ".*"
             },
+            {
+                "user": "guest",
+                "vhost": "/zkf",
+                "configure": ".*",
+                "write": ".*",
+                "read": ".*"
+            },            
             {
                 "user": "guest",
                 "vhost": "/",

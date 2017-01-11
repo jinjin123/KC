@@ -17,24 +17,24 @@
                     <label>Delete conflicting records</label>
                     <input id='resolve-conflicts' type="checkbox"/>      
                     <a href="/_utils/database.html?orders">CouchDB UI</a>
-                    <button id="load-config">Load configuration</button>
                 </li>
                 <li>
-                    <a href="kc.config.json">Current Configuration</a>
-                    <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Orders that have conflicts</a>
-                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Order that has been sent to OC</a>
-                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true">Order that is waiting to synchronize with OC</a>
+                    <a href="kc.config.json">Pre-processing configuration</a>
+                    <a href="/orders/_local/configuration">Post-processing configuration</a>
+                    <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Conflicting orders</a>
+                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Synchronized orders</a>
+                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true">New orders</a>
                 </li>
                 <li>
                     <button id="cleanAll">Delete all orders</button>
-                    <button id="clean">Delete order that is older than a month</button>
+                    <button id="clean">Delete old orders</button>
                     <button id="compact">Compact database</button>
                     <button id="release">Synchronize software</button>
-                    <button id="compareOC">Compare data with OC</button>
-                    <button id="comparePOS">Compare data with POS</button>                    
+                    <button id="compareOC">Compare to OC</button>
+                    <button id="comparePOS">Compare to POS</button>                    
                 </li>
                 <li>
-                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[99999,100]&include_docs=true&conflicts=true">Order that has failed to synchronize with OC</a>
+                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[99999,100]&include_docs=true&conflicts=true">Failed orders</a>
                     <span>                  </span>
                     <button id="retry_failed_orders">Retry</button>
                 </li>
@@ -116,7 +116,28 @@
                             console.log(err);
                         });
                     } else {
-                        window.mq.send('*', 'request', 'hello world');
+                        window.mq.send('all', 'query', {
+                            type:"request",
+                            from:"kc2",
+                            to:"all",
+                            reply_to:"kc2",
+                            id:"asdf",
+                            data:{
+                                command:"orderList",
+                                arguments:[getDate(new Date(), 'YYYY-MM-DD')]
+                            }
+                        });
+                        window.mq.send('all', 'query', {
+                            type:"request",
+                            from:"kc2",
+                            to:"all",
+                            reply_to:"kc2",
+                            id:"asdf",
+                            data:{
+                                command:"orderDetail",
+                                arguments:['SP000001201701113742']
+                            }
+                        });                        
                     }
                 });                
                 $('#cleanAll').click(function(){
@@ -140,9 +161,15 @@
                     setLocal('store-id', $('#storeid').val(), function(data, err) {
                         if(!data){
                             $("#result").html(JSON.stringify(err));
+                        } else {
+                            loadConfig(function(cfg){
+                                setLocal("configuration", cfg, function(data, err){
+                                    console.log(data ? data : err);
+                                });
+                            }); 
                         }
                     });
-                })
+                });
                 $('#query_order_oc').click(function() {
                     window.location.href = getOCQueryURL(cfg, $('#orderid').val());
                 });

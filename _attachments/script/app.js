@@ -1,7 +1,11 @@
 
-function getDate(d){
+function getDate(d, fmt){
     d = d ? d : (new Date());
-    return moment(d).format('YYYYMMDDHHmmss');
+    fmt = fmt ? fmt : 'YYYYMMDDHHmmss';
+    return moment(d).format(fmt);
+}
+function isArray(o){
+    return Object.prototype.toString.call(o) == '[object Array]';
 }
 function ajax(options, then){
     if (typeof(options) === 'object') {
@@ -30,7 +34,7 @@ function ajax(options, then){
             }).fail(function (jqXHR, textStatus, errorThrown) {
                 var err = ajaxError(jqXHR, textStatus, errorThrown);
                 if(verbose) {
-                    console.log('---------error----------');
+                    console.log('---------error---------');
                     console.log(err);
                 }
                 if(typeof(then) === 'function') { 
@@ -47,27 +51,71 @@ function topic(cfg, on_err, on_dbg) {
         client = Stomp.over(ws),
         ret = {},
         status_str,
-        sub = null;
+        sub = [];
     function dbg(str) {
         var f = typeof (on_dbg) === 'function' ? on_dbg : function (str) {};
         f(status_str + " " + str);
     }
     client.debug = dbg;
-    ret.receive = function (on_msg, key, uid) {
-        on_msg = typeof (on_msg) === "function" ? on_msg : function (x) {console.log(x); };
+    ret.receive = function (on_msgs, keys, uids) {
+        if(isArray(on_msgs)){
+            if(on_msgs.length === 0){
+                on_msgs = [function (x) {console.log(x); }];
+            }
+        } else if(typeof(on_msgs) === 'function'){
+            on_msgs = [on_msgs];
+        } else {
+            on_msgs = [function (x) {console.log(x); }];
+        }
+        if(!isArray(keys)) {
+            keys = [keys];
+        }
+        if(!isArray(uids)) {
+            uids = [uids];
+        }
+        function getOptions(index) {
+            if(index< uids.length) {
+                return uids[index] ? {id: uids[index], durable: true, "auto-delete": false} : {"auto-delete": false};
+            }
+            return {"auto-delete": false};
+        }
+        function getOnMsg(index){
+            if(index < on_msgs.length) {
+                return on_msgs[index];
+            } else {
+                return on_msgs[on_msgs.length - 1];
+            }
+        }
         status_str = 'Try connect to ' + cfg["bus-host"];
-        client.connect('guest', 'guest', function () {
-            status_str = 'Connected to ' + cfg["bus-host"] + '/topic/' + key;
-            sub = client.subscribe('/topic/' + key, on_msg, 
-                uid ? {id: uid, durable: true, "auto-delete": false} : {"auto-delete": false});
-        }, on_err, '/');
+        function suball(keys, index) {
+            if(index < keys.length) {
+                sub.push(client.subscribe('/topic/' + keys[index], getOnMsg(index), getOptions(index)));
+                suball(keys, index + 1);
+            }
+        }
+        if(client.connected) {
+            suball(keys, 0);
+        } else {
+            client.connect('guest', 'guest', function () {
+                status_str = 'Connected to ' + cfg["bus-host"] + '/topic/' + JSON.stringify(keys);
+                suball(keys, 0);
+            }, on_err, '/');
+        }
     };
     ret.send = function (key, msg) {
+        if(typeof(msg) !== 'string') {
+            msg = JSON.stringify(msg);
+        }
+        if(typeof(key) !== 'string'){
+            key = JSON.stringify(key);
+        }
         client.send("/topic/" + key, {}, msg);
     };
     ret.close = function () {
         if (sub) {
-            sub.unsubscribe();
+            for(var i in sub) {
+                sub[i].unsubscribe();
+            }
             sub = null;
         }
         client.disconnect(function (x) {
@@ -146,7 +194,8 @@ function getAllURLs(){
 function queryPOS(cfg){
     var mq = topic(cfg)
 }
-function receivePOS(cfg, on_reply, on_error){
+function receivePOS(cfg, on_req, on_error){
+    var pending = {};
     var mq = topic(cfg, function (x){
         mq.close();
         if(typeof(on_error) === 'function') {
@@ -159,19 +208,41 @@ function receivePOS(cfg, on_reply, on_error){
         window.$('#stomp_info').html(err);
         console.log(err);        
     });
-    mq.receive(function(msg){
-        if(typeof(on_reply) === 'function') {
-            on_reply.call(mq, msg);
-        } else {
-            console.log(msg);
-        }
-    }, cfg['store-id'] + '.kc2.*.*', 'kc2');
+    function hook_msg(key, id){
+        mq.receive(function(msg){
+            var tmp = {"msg":JSON.parse(msg.body), destination:msg.headers.destination};
+            if(tmp.msg.type === 'request') {
+                if(typeof(on_req) === 'function') {
+                    if(tmp.msg.to === 'kc2' || tmp.msg.to === 'all'){
+                        if(tmp.msg.type === 'request'){
+                            on_req.call(mq, tmp);
+                        }
+                    }
+                } else {
+                    console.log(tmp);
+                }                
+            } else if (tmp.msg.type === 'response') {
+                if(typeof(pending[tmp.msg.id]) === 'function'){
+                    var fun = pending[tmp.msg.id];
+                    if(!tmp.msg.more){
+                        delete pending[tmp.msg.id];
+                    }
+                    fun.call(mq, tmp);
+                }
+            }
+        }, key, id);
+    }
+    hook_msg(['kc2.*.*','all.*.*']);
     var send = mq.send;
-    mq.send = function (to, evt, msg) {
-        return send(cfg['store-id'] + '.' + to + '.kc2.' + evt, msg);
+    mq.send = function (to, evt, msg, on_reply) {
+        if(typeof(on_reply) === 'function' && msg.id) {
+            pending[msg.id] = on_reply;
+        }
+        return send(to + '.kc2.' + evt, msg);
     }
     return mq;
 }
+
 function receiveOC(cfg) {
     var mq = queue(cfg, function (x) {
         window.$('#stomp_info').html(x);
@@ -247,7 +318,7 @@ function deploy(para, then){
         window.$.getJSON(para, function (result) {
             deployOne(result.target, 0);
         });    
-    } else if(typeof(para) === 'array') {
+    } else if(isArray(para)) {
         deployOne(result.target, 0);        
     } 
 }
