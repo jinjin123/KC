@@ -43,7 +43,7 @@
     },
 
     "oc-host":"sparkpadg-elasticl-2t187adkjku3-926650160.cn-north-1.elb.amazonaws.com.cn:9087",
-    "oc-token":"ZV4C2410B1eDh59kqHdG535S5G69w8455jl780KtKYReI1aj5SX1e03T3406944N",
+    "oc-token":"rNLSb812vTu27767M505b332XPX7T7V07S6D68i36o7ZPoYg12N3ey1R2E100s8f",
     "oc-submitUrl":"http://{{oc-host}}/newPos_oc/api/submitNewPosOrder.html?access_token={{oc-token}}",
     "oc-modifyUrl":"http://{{oc-host}}/newPos_oc/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
     "oc-queryUrl":"http://{{oc-host}}/newPos_oc/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
