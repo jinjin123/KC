@@ -23,6 +23,7 @@ function ajax(options, then){
             var verbose = options.verbose;
             delete options.verbose;
             options.timeout = options.timeout ? options.timeout : 60000;
+            options.crossOrigin = true;
             return window.$.ajax(options).done(function (data, textStatus, jqXHR) {
                 if(verbose){
                     console.log('--------success--------');

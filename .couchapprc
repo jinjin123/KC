@@ -1,7 +1,7 @@
 {
     "env": {
         "default": {
-            "db":"http://ymeng:111111@127.0.0.1:5984/orders"
+            "db":"http://127.0.0.1:5984/orders"
         },
         "zhonghua": {
                 "db":"http://172.17.16.2:5984/orders"
