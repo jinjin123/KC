@@ -117,10 +117,24 @@
    **?????**
 
 ##Architecture of KC
- * Database design
- * Communication with other software module e.g. KP/POS/KS/CAP etc.
- * Share configuration with other software module
- * Synchronize data with OC
-   * Send data to OC
-   * Receive data from OC 
- * Resolve conflicting documents
+* Database design  
+  The 'orders' database is for storing all orders of a store. And the design documents of 'orders' are structured as 
+  > views
+  ├── conflicts
+  │   └── map.js
+  ├── order_status
+  │   └── map.js
+  ├── status
+  │   └── map.js
+  ├── sync_status
+  │   └── map.js
+  └── timestamp
+      └── map.js
+  
+
+* Communication with other software module e.g. KP/POS/KS/CAP etc.
+* Share configuration with other software module
+* Synchronize data with OC
+  * Send data to OC
+  * Receive data from OC 
+* Resolve conflicting documents
