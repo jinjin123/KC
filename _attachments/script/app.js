@@ -583,38 +583,38 @@ function updateOrders(order, then) {
     });
 }
 function sync1Order(od, m, s, xthen) {
-    m(od, function (data, status) {
+    m(od, function (data, err) {
         if (data){
             if (data.code == 0) {
-                od.sync_status = 1;
+                od.sync_status = 1;  //success
                 od.oc_msg = data;
                 window.updateOrders(od, xthen);
             } else if (data.code == 1001) {
-                s(od, function (data, status) {
-                    if(data){
+                s(od, function (data1, err1) {
+                    if(data1){
                         if(data.code == 0) {
-                            od.sync_status = 1;
-                            od.oc_msg = data;
+                            od.sync_status = 1;  //success
+                            od.oc_msg = data1;
                             window.updateOrders(od, xthen);                                
                         } else {
-                            od.sync_status = data.code ? data.code : 2;
-                            od.oc_msg = data;
+                            od.sync_status = data1.code ? data1.code : 2; //unknown error code has return data
+                            od.oc_msg = data1;
                             window.updateOrders(od, xthen);
                         }
                     } else {
-                        od.sync_status = 3;
-                        od.oc_msg = status;
+                        od.sync_status = 3;  //unknown error code, no return data
+                        od.oc_msg = err1;
                         window.updateOrders(od, xthen);
                     }
                 });
             } else {
-                od.sync_status = data.code ? data.code : 2;
+                od.sync_status = data.code ? data.code : 2;  //unknown error code has return data
                 od.oc_msg = data;
                 window.updateOrders(od, xthen);
             }
         } else {
-            od.sync_status = 3;
-            od.oc_msg = status;
+            od.sync_status = 3;  //unknown error code, no return data
+            od.oc_msg = err;
             window.updateOrders(od, xthen);                
         }
     });    
