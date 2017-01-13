@@ -1,10 +1,22 @@
 ##Getting started with KC
  * Install couchapp
+   Please refer to [official documentation](https://github.com/couchapp/couchapp)
  * Get KC source code
+   `git clone https://git.coding.net/mshen/KC-with-CouchDB-and-RabbitMQ.git kc`
  * Build docker image of CouchDB and RabbitMQ
+   ```
+   cd kc/docker/couchdb
+   docker build -t cdb .
+   cd kc/docker/rabbitmq
+   docker build -t rmq .
+   ```
+ * Start docker containers
+   
  * Deploy KC to CouchDB
+   
  * Start KC
  * Use KC UI
+
 
 ##Production deployment of KC
  * Configuration of CouchDB

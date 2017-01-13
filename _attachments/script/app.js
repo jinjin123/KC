@@ -573,11 +573,11 @@ function updateOrders(order, then) {
     order.timestamp = order.timestamp ? order.timestamp : getDate();
     window.$.couch.db('orders').saveDoc(order, {
         success: function (data) {
-            console.log('update order '+order._id+' success', data);
+            console.log('update sync_status '+order._id+' success', data);
             then(order);
         },
         error: function (status) {
-            console.log('update order '+order._id+' failed', status);
+            console.log('update sync_status '+order._id+' failed', status);
             then(order);
         }
     });
@@ -597,7 +597,7 @@ function sync1Order(od, m, s, xthen) {
                             od.oc_msg = data1;
                             window.updateOrders(od, xthen);                                
                         } else {
-                            od.sync_status = data1.code ? data1.code : 2; //unknown error code has return data
+                            od.sync_status = (data1.code !== undefined && data1.code !== null) ? data1.code : 2; //unknown error code has return data
                             od.oc_msg = data1;
                             window.updateOrders(od, xthen);
                         }
@@ -608,7 +608,7 @@ function sync1Order(od, m, s, xthen) {
                     }
                 });
             } else {
-                od.sync_status = data.code ? data.code : 2;  //unknown error code has return data
+                od.sync_status = (data.code !== undefined && data.code !== null) ? data.code : 2;  //unknown error code has return data
                 od.oc_msg = data;
                 window.updateOrders(od, xthen);
             }
