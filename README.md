@@ -1,6 +1,5 @@
 ##Getting started with KC
- * Install couchapp
-
+ * Install couchapp  
    Please refer to [official documentation](https://github.com/couchapp/couchapp)
  * Get KC source code
    ```
@@ -22,8 +21,7 @@
    ```
    couchapp push http://127.0.0.1:5984/orders
    ```
- * Start KC
-   
+ * Start KC  
    For those running nodejs 6.6.0 or newer
    ```
    cd kc/nodekc
@@ -36,8 +34,7 @@
    npm install
    node index.js http://127.0.0.1:5984   
    ```
- * Use KC UI
-   
+ * Use KC UI  
    Use your browser to open http://127.0.0.1:5984/orders/_design/kc/index.html. This is the WEB page of KC hosted in CouchDB. 
    The WEB page provides functionalities that require user interaction. The following functionalities could be accessed from 
    that page:
@@ -98,7 +95,6 @@
      delayed_commits = false
      ```
  * Configuration of RabbitMQ
-
    * Enable guest user to access management UI remotely
      ```
      {loopback_users, []},
@@ -113,24 +109,22 @@
    * Expose additional ports
      > 15671 15672 15673 15674 61613 61614
 
- * How to update KC code
+ * How to update KC code  
    **?????**
 
-##Architecture of KC
+##Architecture of KC  
 * Database design  
   The 'orders' database is for storing all orders of a store. And the design documents of 'orders' are structured as 
   > views
-  ├── conflicts
-  │   └── map.js
-  ├── order_status
-  │   └── map.js
-  ├── status
-  │   └── map.js
-  ├── sync_status
-  │   └── map.js
-  └── timestamp
-      └── map.js
-  
+  > > conflicts
+  > > order_status
+  > > status
+  > > sync_status
+  > > timestamp  
+
+  > filters
+  > > data.js
+  > > design.js
 
 * Communication with other software module e.g. KP/POS/KS/CAP etc.
 * Share configuration with other software module
