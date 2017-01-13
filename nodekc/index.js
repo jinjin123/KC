@@ -95,14 +95,16 @@ var args = process.argv.splice(2);
 var baseurl = (args && (args.length > 0)) ? args[0] : "";
 var cluster = require('cluster');
 cluster.on('exit', function(w){
-    console.log('Worker %d died :(', w.id);
-    cluster.fork();
+    console.log('KC %d died :(', w.id);
+    if (w.process.exitCode === 100){
+        cluster.fork();
+    } else {
+        process.exit(w.process.exitCode);
+    }
 });
 if(cluster.isMaster) {
-    console.log('is master');
     cluster.fork();
 } else {
-    console.log('is worker');
     jsdom.env({
         url: getKCURL(baseurl, "index.html"),
         scripts: [],
@@ -131,6 +133,10 @@ if(cluster.isMaster) {
                         });
                     }
                 }
+                app.get("/refresh", function(req, res){
+                    console.log("refresh");
+                    process.exit(100);
+                });                
                 app.get("/exit", function(req, res){
                     console.log("exit");
                     process.exit(0);
