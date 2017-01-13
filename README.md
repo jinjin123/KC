@@ -116,15 +116,15 @@
 * Database design  
   The 'orders' database is for storing all orders of a store. And the design documents of 'orders' are structured as 
   > views
-  > > conflicts
-  > > order_status
-  > > status
-  > > sync_status
-  > > timestamp  
+  > * conflicts
+  > * order_status
+  > * status
+  > * sync_status
+  > * timestamp  
 
   > filters
-  > > data.js
-  > > design.js
+  > * data.js
+  > * design.js
 
 * Communication with other software module e.g. KP/POS/KS/CAP etc.
 * Share configuration with other software module
