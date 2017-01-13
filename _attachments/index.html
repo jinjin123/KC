@@ -17,6 +17,7 @@
                     <label>Delete conflicting records</label>
                     <input id='resolve-conflicts' type="checkbox"/>      
                     <a href="/_utils/database.html?orders">CouchDB UI</a>
+                    <button id="start-kc">Start KC</button>
                 </li>
                 <li>
                     <a href="kc.config.json">Pre-processing configuration</a>
@@ -76,6 +77,7 @@
         $(document).ready(function() {
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
+
                 getLocal('resolve-conflicts', function(data, err){
                     $('#resolve-conflicts').get(0).checked = data;
                     $('#resolve-conflicts').click(function() {
@@ -91,6 +93,7 @@
                         $("#result").text(JSON.stringify(err));
                     }
                 });
+                
                 function log_result(data, err){
                     if(data){
                         alert("success\n" + JSON.stringify(data));
@@ -98,6 +101,12 @@
                         alert("failed\n" + JSON.stringify(err));
                     }                     
                 }
+                $('#start-kc').click(function(){
+                    getLocal('resolve-conflicts', function(c, err){
+                        receiveOC(cfg);
+                        scanOrders(cfg, c);                    
+                    });
+                });                
                 $('#compact').click(function(){
                     compact(log_result);
                 });

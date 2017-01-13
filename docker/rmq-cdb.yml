@@ -3,8 +3,6 @@ services:
   rmq:
     image: rmq:latest
     container_name: rmq
-    volumes:
-      - /home/core/docker/rmq/data:/var/lib/rabbitmq
     ports:
       - "5671:5671"
       - "5672:5672"
@@ -16,8 +14,6 @@ services:
   cdb:
     image: cdb:latest
     container_name: cdb
-    volumes:
-      - /home/core/docker/couchdb/data:/usr/local/var/lib/couchdb
     ports:
       - "5984:5984"
     network_mode: host

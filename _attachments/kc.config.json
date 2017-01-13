@@ -48,8 +48,9 @@
     "oc-modifyUrl":"http://{{oc-host}}/newPos_oc/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
     "oc-queryUrl":"http://{{oc-host}}/newPos_oc/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
     "oc-listUrl":"http://{{oc-host}}/newPos_oc/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
+    "kc-name":"kc2",
     "posCfg":{
-        "kcName":"kc2",
+        "kcName":"{{kc-name}}",
         "storejgId":4246,
         "orderPrefix":"TEST",
         "DE_posID":"7570",

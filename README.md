@@ -1,88 +1,134 @@
-## Sample data from orders
-    {
-        "_id":"CN75702320161202gg760",  //id of the doc in CouchDB
-        "_rev":"2-2268b743209ac608a2bd13de4fdedc8a", //
-        "order": {
-            "discountList":[],
-            "orderInfo": {
-                "addresslat":"0",
-                "orderstatus":4,
-                "orderthirdno":"",
-                "freight":0,
-                "orderpostno":"",
-                "storename":"沃尔玛",
-                "addorderoperator":"002",
-                "storeid":"CN757023",
-                "userid":"CN757023",
-                "payamount":650,
-                "mealstime":"2016-12-02 11:30:49",
-                "companyid":"0",
-                "needdelivery":0,
-                "istakeout":0,
-                "identifyingcode":"g760",
-                "orderplatformsource":"stpos",
-                "nums":1,
-                "receivetime":"2016-12-02 11:30:49",
-                "addresslng":"0",
-                "ext":"",
-                "ordertradeno":"",
-                "orderid":"CN75702320161202gg760",
-                "userphone":"02038771727",
-                "paytime":"2016-12-02 11:30:49",
-                "dicountamount":0,
-                "ordersource":"stpos",
-                "invoicetitle":"",
-                "totalamount":650,
-                "deliverytime":"2016-12-02 11:30:49",
-                "addtime":"2016-12-02 11:30:47",
-                "companyname":"",
-                "paystatus":1,
-                "isneedinvoice":0,
-                "deliveryway":0,
-                "booktime":"2016-12-02 11:30:47",
-                "paytype":"cash",
-                "username":"沃尔玛"
-            },
-            "productList": [ {
-                "ismeat":0,
-                "productid":75770000,
-                "salesarea":"",
-                "totalprice":650,
-                "productimg":"",
-                "productname":"看气质肠粉",
-                "productnum":1,
-                "productprice":650
-            } ]
-        },
-        "sync_status":null,
-        "oc_msg":null,
-        "timestamp":"2016/12/09 13:16:10"
-    }
+##Getting started with KC
+ * Install couchapp  
+   Please refer to [official documentation](https://github.com/couchapp/couchapp)
+ * Get KC source code
+   ```
+   git clone https://git.coding.net/mshen/KC-with-CouchDB-and-RabbitMQ.git kc
+   ```
+ * Build docker image of CouchDB and RabbitMQ
+   ```
+   cd kc/docker/couchdb
+   docker build -t cdb .
+   cd kc/docker/rabbitmq
+   docker build -t rmq .
+   ```
+ * Start docker containers
+   ```
+   cd kc/docker
+   docker-compose -f rmq-cdb.yml up -d
+   ```
+ * Deploy KC to CouchDB
+   ```
+   couchapp push http://127.0.0.1:5984/orders
+   ```
+ * Start KC  
+   For those running nodejs 6.6.0 or newer
+   ```
+   cd kc/nodekc
+   node index.js http://127.0.0.1:5984
+   ```
+   For those running nodejs lower than 6.6.0
+   ```
+   cd kc/nodekc
+   rm -rf node_modules
+   npm install
+   node index.js http://127.0.0.1:5984   
+   ```
+ * Use KC UI  
+   Use your browser to open http://127.0.0.1:5984/orders/_design/kc/index.html. This is the WEB page of KC hosted in CouchDB. 
+   The WEB page provides functionalities that require user interaction. The following functionalities could be accessed from 
+   that page:
+   * Set store-id, this is the unique ID of a store. Setting this field will tell KC which store it is working in.
+   * Set if KC should resolve conflicting orders automatically. If this flag is true, and there are multiple revisions of data 
+     for a single order, KC will pick the revision with the highest orderstatus and synchronize it to OC, other revisions will be 
+     deleted automatically.
+   * Go to CouchDB management page.
+   * Start the KC daemon in browser to synchronize order between KC and OC. The daemon could run in browser as well as nodejs.
+   * List the current configuration before variable substitution
+   * List the current configuration after variable substitution
+   * List the conflicting orders
+   * List orders that have been synchronized to OC
+   * List orders that have NOT been synchronized to OC
+   * List orders that failed to synchronize to OC
+   * Re-synchronize failed orders to OC
+   * Delete all orders in CouchDB
+   * Delete orders that is older than a month
+   * Compact database to release disk space
+   * Copy design documents to/from CouchDB servers that are listed in [kc.target.json](http://127.0.0.1:5984/orders/_design/kc/kc.target.json)
+   * Retrieve order list from OC
+   * Retrieve order list from POS
+   * Get order information from OC by order ID
+   * Get order information from KC by order ID and revision number
+   * Display the current status of STOMP connection
 
-    git clone git://github.com/couchapp/example.git
-    cd example
+##Production deployment of KC
+ * Configuration of CouchDB
+   * To facilitate the installation on x86 platform, the version of CouchDB is **1.6.1** 
+   * CORS setting of CouchDB
+     ```
+     [httpd]
+     enable_cors = true
+     [cors]
+     origins = *
+     credentials = true
+     methods = GET, PUT, POST, HEAD, DELETE
+     headers = accept, authorization, content-type, origin, referer, x-csrf-token
+     ```
+   * Authentication of administrator
+     ```
+     [admins]
+     ymeng = 111111
+     ```
+   * Virtual hosts
+     ```
+     [vhosts]
+     :ddoc.zkf.com:5984=/orders/_design/:ddoc/index.html
+     ```
+   * Auto-Compaction
+     ```
+     [compactions]
+     _default = [{db_fragmentation, "70%"}, {view_fragmentation, "60%"}, {from, "23:00"}, {to, "04:00"}]
+     ```
+   * Disable delayed commit
+     ```
+     [couchdb]
+     delayed_commits = false
+     ```
+ * Configuration of RabbitMQ
+   * Enable guest user to access management UI remotely
+     ```
+     {loopback_users, []},
+     ```
+   * Enable additional plugins
+     * rabbitmq_management
+     * rabbitmq_federation
+     * rabbitmq_federation_management
+     * rabbitmq_shovel
+     * rabbitmq_shovel_management
+     * rabbitmq_web_stomp
+   * Expose additional ports
+     > 15671 15672 15673 15674 61613 61614
 
-Install with 
-    
-    couchapp push . http://localhost:5984/example
+ * How to update KC code  
+   **?????**
 
-or (if you have security turned on)
+##Architecture of KC  
+* Database design  
+  The 'orders' database is for storing all orders of a store. And the design documents of 'orders' are structured as 
+  > views
+  > * conflicts
+  > * order_status
+  > * status
+  > * sync_status
+  > * timestamp  
 
-    couchapp push . http://adminname:adminpass@localhost:5984/example
-  
-You can also create this app by running
+  > filters
+  > * data.js
+  > * design.js
 
-    couchapp generate example && cd example
-    couchapp push . http://localhost:5984/example
-
-Deprecated: *couchapp generate proto && cd proto*
-
-
-## Todo
-
-* factor CouchApp Commonjs to jquery.couch.require.js
-* use $.couch.app in app.js
-
-## License
-
-Apache 2.0
+* Communication with other software module e.g. KP/POS/KS/CAP etc.
+* Share configuration with other software module
+* Synchronize data with OC
+  * Send data to OC
+  * Receive data from OC 
+* Resolve conflicting documents
