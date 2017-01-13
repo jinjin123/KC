@@ -41,7 +41,7 @@
         "exchanges":[],
         "bindings":[]
     },
-
+    "kc-name":"kc2",
     "oc-host":"172.16.104.124:8081",
     "oc-token":"hty4B91i8S02je45FL07AnN29UB7Hu2mZ2t1864Hk29Oji06M1397212281Th716",
     "oc-submitUrl":"http://{{oc-host}}/oc2/api/submitNewPosOrder.html?access_token={{oc-token}}",
@@ -49,7 +49,7 @@
     "oc-queryUrl":"http://{{oc-host}}/oc2/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
     "oc-listUrl":"http://{{oc-host}}/oc2/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
     "posCfg":{
-        "kcName":"kc2",
+        "kcName":"{{kc-name}}",
         "storejgId":4246,
         "orderPrefix":"TEST",
         "DE_posID":"7570",

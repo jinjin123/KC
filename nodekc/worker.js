@@ -108,7 +108,7 @@ jsdom.env({
         }
         win = window;
         window.WebSocket = require('ws');
-        window.setTimeout(function(){
+        setTimeout(function(){
             var tmp = window.getAllURLs(), i;
             for(i in tmp) {
                 var x = tmp[i];
@@ -138,20 +138,18 @@ jsdom.env({
                 });
             });
             app.listen(3000, function(){
-                setTimeout(function(){
-                    window.run(function(cfg, then){
-                        configMQ(window.getMQConfig(cfg),function(err, httpResponse, body) {
-                            if (err) {
-                                console.error('upload failed:', err);
-                            } else {
-                                console.log('Config RabbitMQ successful!  Server responded with:', body);
-                            }
-                        });
-                        if(typeof(then) === 'function') {
-                            then();
+                window.run(function(cfg, then){
+                    configMQ(window.getMQConfig(cfg),function(err, httpResponse, body) {
+                        if (err) {
+                            console.error('upload failed:', err);
+                        } else {
+                            console.log('Config RabbitMQ successful!  Server responded with:', body);
                         }
                     });
-                }, 5000);
+                    if(typeof(then) === 'function') {
+                        then();
+                    }
+                });
                 console.log("running on port 3000") 
             });            
         }, 1000);

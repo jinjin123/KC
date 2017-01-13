@@ -69,6 +69,13 @@
             "configure": ".*",
             "write": ".*",
             "read": ".*"
+        },
+        {
+            "user": "guest",
+            "vhost": "/zkf",
+            "configure": ".*",
+            "write": ".*",
+            "read": ".*"
         }
     ],
     "parameters": [],

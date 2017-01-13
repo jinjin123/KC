@@ -164,16 +164,16 @@ function queue(cfg, on_err, on_dbg) {
 
 function run(then){
     loadConfig(function(cfg){
-        getLocal('resolve-conflicts', function(data, err){
+        getLocal('resolve-conflicts', function(c, err){
             setLocal("configuration", cfg, function(data, err){
                 if(typeof(then) === 'function') {
                     then(cfg, function(){
                         receiveOC(cfg);
-                        scanOrders(cfg, data);
+                        scanOrders(cfg, c);
                     })    
                 } else {
                     receiveOC(cfg);
-                    scanOrders(cfg, data);                    
+                    scanOrders(cfg, c);                    
                 }
             });
         }); 
