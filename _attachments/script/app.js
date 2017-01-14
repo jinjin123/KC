@@ -565,9 +565,27 @@ function modifyOC(cfg) {
             dataType: 'json',
             data: JSON.stringify(d),
             processData: false
-        }, fun);
+        }, function(data, err){
+            if(order.orderInfo.returntime) {
+                ajax({
+                    url: cfg['oc-refundStatus'],
+                    method: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify({
+                        orderid:order.orderInfo.orderid,
+                        redundstatus:"1",
+                        redundCheckStatus:"4"
+                    }),
+                    processData: false
+                }, fun);
+            } else {
+                fun(data, err);
+            }
+        });
     };
 }
+
 function updateOrders(order, then) {
     'use strict';
     order.timestamp = order.timestamp ? order.timestamp : getDate();
@@ -627,6 +645,9 @@ function getStoreName(order){
     }
     console.log(order);
 }
+
+
+
 function syncOC(m, s, docs, index, then) {
     'use strict';
     if (index < docs.length) {
