@@ -97,19 +97,26 @@ var cluster = require('cluster');
 cluster.on('exit', function(w){
     console.log('KC %d died :(', w.id);
     if (w.process.exitCode === 100){
+        //console.log('on exit then fork');
         cluster.fork();
     } else {
+        //console.log('on exit then exit')
         process.exit(w.process.exitCode);
     }
 });
 if(cluster.isMaster) {
+    //console.log('in master');
     cluster.fork();
 } else {
+   // console.log('in worker');
     jsdom.env({
         url: getKCURL(baseurl, "index.html"),
         scripts: [],
         virtualConsole: jsdom.createVirtualConsole().sendTo(console),
         done: function (err, window) {
+            if (!window){
+                process.exit(100);
+            }
             function rewriteGet(oldp, newp) {
                 console.log(oldp + ' ==>> ' + newp);
                 app.get(newp, function (req, res) {
