@@ -116,17 +116,33 @@
 * Database design  
   The 'orders' database is for storing all orders of a store. And the design documents of 'orders' are structured as 
   > views
-  > * conflicts
-  > * order_status
-  > * status
-  > * sync_status
+  > * conflicts  
+      This view provides index on conflicting orders
+  > * order_status  
+      This view provides index on orderstatus
+  > * status  
+      This view provides index on sync_status and orderstatus
+  > * sync_status  
+      This view provides index on sync_status
   > * timestamp  
+      This view provides index on synchronization time
 
   > filters
-  > * data.js
-  > * design.js
+  > * data.js  
+      This filter outputs data documents only
+  > * design.js  
+      This filter outputs design documents only
 
-* Communication with other software module e.g. KP/POS/KS/CAP etc.
+* Communication with other software module e.g. KP/POS/KS/CAP etc.  
+  There are two mechanisms can be uesd to communicate with other software modules running in the same store.
+  1. CouchDB data replication  
+     Since POS/KP/CAP use PouchDB in browser and synchronize with CouchDB by CouchDB replication protocol, 
+     the change made by one party in database will be broadcast to every party in a store that connect to CouchDB.
+     This mechanism is robust in terms of network partision tolerance. But this mechanism lacks of 'deliver only once' 
+     semantic.
+  2. STOMP message  
+     This mechanism support 'deliver only once' semantic, but need application to resend 
+
 * Share configuration with other software module
 * Synchronize data with OC
   * Send data to OC

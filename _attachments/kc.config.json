@@ -78,6 +78,7 @@
         "oc-submitUrl":"http://{{oc-host}}/api/submitNewPosOrder.html?access_token={{oc-token}}",
         "oc-modifyUrl":"http://{{oc-host}}/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
         "oc-queryUrl":"http://{{oc-host}}/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",
+        "oc-refundStatus" : "http://{{oc-host}}/newPos_oc/api/updateRefundStatus.html?access_token={{oc-token}}",      
         "oc-listUrl":"http://{{oc-host}}/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999"
     },
     "data-center-mq-config":{
