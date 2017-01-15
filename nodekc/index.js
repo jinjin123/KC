@@ -108,13 +108,17 @@ if(cluster.isMaster) {
     //console.log('in master');
     cluster.fork();
 } else {
-   // console.log('in worker');
+    process.on('uncaughtException', function(err) {
+        console.log(err);
+        process.exit(100);
+    })
     jsdom.env({
         url: getKCURL(baseurl, "index.html"),
         scripts: [],
         virtualConsole: jsdom.createVirtualConsole().sendTo(console),
         done: function (err, window) {
             if (!window){
+                console.log('Can not load KC from ' + getKCURL(baseurl, "index.html"));
                 process.exit(100);
             }
             function rewriteGet(oldp, newp) {
