@@ -7,19 +7,19 @@ function getDate(d, fmt){
 function isArray(o){
     return Object.prototype.toString.call(o) == '[object Array]';
 }
+function ajaxError(jqXHR, textStatus, errorThrown, options){
+    return {
+        "textStatus": textStatus,
+        "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+        "responseText": jqXHR.responseText,
+        "status":jqXHR.status,
+        "getAllResponseHeaders":jqXHR.getAllResponseHeaders(),
+        "options":options
+    };
+}
 function ajax(options, then){
     if (typeof(options) === 'object') {
         if(options) {
-            function ajaxError(jqXHR, textStatus, errorThrown){
-                return {
-                    "textStatus": textStatus,
-                    "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-                    "responseText": jqXHR.responseText,
-                    "status":jqXHR.status,
-                    "getAllResponseHeaders":jqXHR.getAllResponseHeaders(),
-                    "options":options
-                };
-            }
             var verbose = options.verbose;
             delete options.verbose;
             options.timeout = options.timeout ? options.timeout : 60000;
@@ -32,7 +32,7 @@ function ajax(options, then){
                     then(data, null);
                 }
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                var err = ajaxError(jqXHR, textStatus, errorThrown);
+                var err = ajaxError(jqXHR, textStatus, errorThrown, options);
                 if(verbose) {
                     console.log('---------error---------');
                     console.log(err);
@@ -43,6 +43,49 @@ function ajax(options, then){
             });
         }
     }
+}
+function get(url, then){
+    return ajax({
+        url:url,
+        dataType: 'json',
+        cache: false,
+        crossDomain: true
+    }, then);
+}
+function put_post(method, url, data, then){
+    if (typeof(data) === 'function') {
+        then =  data;
+        data = undefined;
+    }
+    if(data === undefined) {
+        return ajax({
+            url:url,
+            method: method,
+            data:"",
+            contentType : 'application/json',
+            dataType:"json",
+            processData: false,
+            cache: false,
+            crossDomain: true  
+        });
+    } else {
+        return ajax({
+            url:url,
+            method: method,
+            data:JSON.stringify(data),
+            contentType : 'application/json',
+            dataType:"json",
+            processData: false,
+            cache: false,
+            crossDomain: true  
+        });
+    }    
+}
+function post(url, data, then) {
+    return put_post('POST', url, data, then);
+}
+function put(url, data, then) {
+    return put_post('PUT', url, data, then);
 }
 function topic(cfg, on_err, on_dbg) {
     'use strict';
@@ -213,7 +256,7 @@ function receivePOS(cfg, on_req, on_error){
             var tmp = {"msg":JSON.parse(msg.body), destination:msg.headers.destination};
             if(tmp.msg.type === 'request') {
                 if(typeof(on_req) === 'function') {
-                    if(tmp.msg.to === 'kc2' || tmp.msg.to === 'all'){
+                    if(tmp.msg.to === cfg['kc-name'] || tmp.msg.to === 'all'){
                         if(tmp.msg.type === 'request'){
                             on_req.call(mq, tmp);
                         }
@@ -232,13 +275,13 @@ function receivePOS(cfg, on_req, on_error){
             }
         }, key, id);
     }
-    hook_msg(['kc2.*.*','all.*.*']);
+    hook_msg([cfg['kc-name'] + '.*.*','all.*.*']);
     var send = mq.send;
     mq.send = function (to, evt, msg, on_reply) {
         if(typeof(on_reply) === 'function' && msg.id) {
             pending[msg.id] = on_reply;
         }
-        return send(to + '.kc2.' + evt, msg);
+        return send(to + '.' + cfg['kc-name'] + '.' + evt, msg);
     }
     return mq;
 }
@@ -281,24 +324,16 @@ function receiveOC(cfg) {
 }
 
 function compareOC(cfg, then){
-    ajax({
-        url:cfg['oc-listUrl'],
-        cache: false
-    }, then);
+    return get(cfg['oc-listUrl'], then);
 }
+
 function comparePOS(cfg, then){
 
 }
 function deploy(para, then){
     function deployOne(t, i){
         if(i<t.length) {
-            ajax({
-                url:"/_replicate",
-                method:"POST",
-                contentType : 'application/json',
-                dataType:"json",
-                data:JSON.stringify(t[i].data)
-            }, function (data, err){
+            post("_replicate", t[i].data, function (data, err){
                 console.log(t[i].data);
                 if(data){
                     then(data);
@@ -409,10 +444,7 @@ function loadConfig(fun) {
     });
 }
 function orders(query, fun){
-    return ajax({
-        url:'/orders/_design/kc/_view/' + query,
-        cache: false
-    }, fun);
+    return get('/orders/_design/kc/_view/' + query, fun);
 }
 function deleteOrders(data, then){
     if(data){
@@ -429,13 +461,7 @@ function deleteOrders(data, then){
                 });
             }
         }
-        return ajax({
-            url:"/orders/_bulk_docs",
-            method:"POST",
-            dataType:"json",
-            contentType : 'application/json',
-            data:JSON.stringify(tmp)
-        }, then);
+        return post("/orders/_bulk_docs", tmp, then);
     }
 }
 function ordersBefore(x, fun) {
@@ -450,28 +476,11 @@ function getMQConfig(cfg){
         data: cfg["mq-config"]
     };
 }
-function getDCMQConfig(cfg){
-    return {
-        url:cfg['data-center-mq-config-url'],
-        data: cfg['data-center-mq-config']
-    }
-}
+
 function compact(then){
-    ajax({
-        url:"/orders/_compact",
-        method:"POST",
-        dataType:"json",
-        contentType : 'application/json',
-        data:""
-    }, function (data, err){
+    return post("/orders/_compact", function(data, err){
         if(data){
-            ajax({
-                url:"/orders/_compact/kc",
-                method:"POST",
-                dataType:"json",
-                contentType : 'application/json',
-                data:""
-            }, then);
+            post("/orders/_compact/kc", then);
         } else {
             then(data, err);
         }
@@ -482,28 +491,6 @@ function setupShovel(cfg, then) {
     if(typeof(then) === 'function'){
         then(cfg);
     }
-    /*
-    window.$.ajax({
-        url: cfg["mq-config-url"],
-        type: "POST",
-        cache: false,
-        username: 'guest',
-        password: 'guest',
-        dataType: 'json',
-        xhrFields: { withCredentials: true },
-        contentType : 'application/json',
-        data: JSON.stringify(cfg["mq-config"])
-    }).done(function (data, textStatus, jqXHR) {
-        console.log("setup shovel successfully");
-        console.log(data);
-        then(data);
-    }).fail(function (jqXHR, textStatus, errorThrown) {
-        var err = ajaxError(jqXHR, textStatus, errorThrown);
-        console.log("failed to setup shovel");
-        console.log(err);
-        then(null, err);
-    });
-    */
 }
 
 function queryOC(cfg) {
@@ -520,14 +507,7 @@ function submitOC(cfg) {
         if (!order.orderInfo) {
             order = order.order;
         }
-        return ajax({
-            url: cfg['oc-submitUrl'],
-            method: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify(order),
-            processData: false
-        }, fun);
+        return post(cfg['oc-submitUrl'], order, fun);
     };
 }
 function modifyOC(cfg) {
@@ -558,27 +538,13 @@ function modifyOC(cfg) {
                 d[k] = v;    
             }
         }
-        return ajax({
-            url: cfg['oc-modifyUrl'],
-            method: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify(d),
-            processData: false
-        }, function(data, err){
+        return post(cfg['oc-modifyUrl'], d, function(data, err){
             if(order.orderInfo.returntime) {
-                ajax({
-                    url: cfg['oc-refundStatus'],
-                    method: 'POST',
-                    contentType: 'application/json',
-                    dataType: 'json',
-                    data: JSON.stringify({
+                post(cfg['oc-refundStatus'], {
                         orderid:order.orderInfo.orderid,
                         redundstatus:"1",
                         redundCheckStatus:"4"
-                    }),
-                    processData: false
-                }, fun);
+                    }, fun);
             } else {
                 fun(data, err);
             }
@@ -667,11 +633,7 @@ var scanDBCounter = {
     fail: 0
 };
 function getRawLocal(key, then){
-    return ajax({
-        url: "/orders/_local/"+ key,
-        dataType: 'json',
-        cache: false
-    }, then);
+    return get("/orders/_local/"+ key, then);
 }
 function getLocal(key, then){
     getRawLocal(key, function(data, err){
@@ -680,17 +642,7 @@ function getLocal(key, then){
 }
 
 function setRawLocal(key, v, then){
-    return ajax({
-        url: "/orders/_local/" + key,
-        method: 'PUT',
-        cache: false,
-        contentType: 'application/json',
-        timeout: 60000,
-        dataType: 'json',
-        data: JSON.stringify(v),
-        processData: false
-    }, then);    
-    
+    return put("/orders/_local/" + key, v, then);
 }
 function setLocal(key, v, then){
     getRawLocal(key, function(data, err){
@@ -757,11 +709,7 @@ function resolveConflicts(xthen) {
     }
     function asyncMap(data, index, result, then) {
         if((data.length > 0) && (index < data[0].key.length)) {
-            ajax({
-                url: "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index],
-                cache:false,
-                dataType: 'json'                
-            }, function (data, err){
+            get( "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], function (data, err){
                 if(data){
                     result.push(x);
                 }
@@ -783,11 +731,7 @@ function resolveConflicts(xthen) {
             }, 10000);
         }
     }
-    ajax({
-        url: "/orders/_design/kc/_view/conflicts?limit=1",
-        cache: false,
-        dataType: 'json'
-    }, function (data, err){
+    get("/orders/_design/kc/_view/conflicts?limit=1", function (data, err){
         if(data){
             asyncMap(data.rows, 0, [], function(results){
                 if(results.length > 0) {
@@ -824,11 +768,7 @@ function scanOrders(cfg, resolve) {
             }, 10000);                
         }
     }
-    ajax({
-        url: "/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true",
-        cache: false,
-        dataType: 'json'
-    }, function(data, err) {
+    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true", function(data, err) {
         if(data){
             var m = modifyOC(cfg),
                 s = submitOC(cfg);
