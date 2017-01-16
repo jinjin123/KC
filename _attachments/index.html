@@ -85,14 +85,8 @@
                             document.location = document.location;
                         });
                     });
-                });                
-                getLocal('store-id', function(data, err) {
-                    if(data){
-                        $('#storeid').val(data);
-                    } else {
-                        $("#result").text(JSON.stringify(err));
-                    }
-                });
+                });      
+                $('#storeid').val(cfg['store-id']);          
                 
                 function log_result(data, err){
                     if(data){

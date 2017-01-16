@@ -67,7 +67,7 @@ function put_post(method, url, data, then){
             processData: false,
             cache: false,
             crossDomain: true  
-        });
+        }, then);
     } else {
         return ajax({
             url:url,
@@ -78,7 +78,7 @@ function put_post(method, url, data, then){
             processData: false,
             cache: false,
             crossDomain: true  
-        });
+        }, then);
     }    
 }
 function post(url, data, then) {
@@ -206,6 +206,7 @@ function queue(cfg, on_err, on_dbg) {
 }
 
 function run(then){
+    console.log('run...')
     loadConfig(function(cfg){
         getLocal('resolve-conflicts', function(c, err){
             setLocal("configuration", cfg, function(data, err){
@@ -287,6 +288,7 @@ function receivePOS(cfg, on_req, on_error){
 }
 
 function receiveOC(cfg) {
+    console.log('receiveOC...')
     var mq = queue(cfg, function (x) {
         window.$('#stomp_info').html(x);
         mq.close();
@@ -360,6 +362,7 @@ function deploy(para, then){
 
 function loadConfig(fun) {
     'use strict';
+    console.log('loadConfig...');
     window.Mustache.clearCache();
     function walk(x, acc, func) {
         if(typeof(func) === "function") {
@@ -633,6 +636,7 @@ var scanDBCounter = {
     fail: 0
 };
 function getRawLocal(key, then){
+    console.log('getRawLocal('+key+', ...)');
     return get("/orders/_local/"+ key, then);
 }
 function getLocal(key, then){
@@ -642,6 +646,7 @@ function getLocal(key, then){
 }
 
 function setRawLocal(key, v, then){
+    console.log('setRawLocal('+key+', ' + v + ', ...)');
     return put("/orders/_local/" + key, v, then);
 }
 function setLocal(key, v, then){

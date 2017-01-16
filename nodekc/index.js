@@ -92,7 +92,7 @@ var request = require('request');
 var express = require("express");
 var jsdom = require("jsdom");
 var args = process.argv.splice(2);  
-var baseurl = (args && (args.length > 0)) ? args[0] : "";
+var baseurl = (args && (args.length > 0)) ? args[0] : "http://127.0.0.1:5984ƒ";
 var cluster = require('cluster');
 cluster.on('exit', function(w){
     console.log('KC %d died :(', w.id);
