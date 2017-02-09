@@ -792,6 +792,7 @@ function scanOrders(cfg, resolve) {
                 console.log("item ++++++++++++++++++++++");
                 console.log(item);
                 console.log(item.value);
+                console.log(item.value.length);
                 return item.value.length === 1;
             }).map(function (o) {
                 return o.doc;
@@ -867,7 +868,7 @@ function retryFailed(cfg, then) {
             if(typeof(then) === "function") {
                 then("success");
             }
-        });        
+        });
     }).fail(function(xhr, err){
         if(typeof(then) === "function") {
             then(null, err);
