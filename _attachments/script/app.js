@@ -774,7 +774,9 @@ function scanOrders(cfg, resolve) {
             }, 10000);                
         }
     }
+    console.log("scanOrders ++++++++++++++++++");
     get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true", function(data, err) {
+        console.log(data);
         if(data){
             var m = modifyOC(cfg),
                 s = submitOC(cfg);
