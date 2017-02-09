@@ -211,6 +211,8 @@ function run(then){
     loadConfig(function(cfg){
         getLocal('resolve-conflicts', function(c, err){
             setLocal("configuration", cfg, function(data, err){
+                console.log("run resolve-conflicts +++++++++++");
+                console.log(c);
                 if(typeof(then) === 'function') {
                     then(cfg, function(){
                         receiveOC(cfg);
