@@ -787,6 +787,9 @@ function scanOrders(cfg, resolve) {
             scanDBCounter.success++;
             window.$('#scan_db_success').html(scanDBCounter.success);
             window.syncOC(m, s, data.rows.filter(function(item){
+                console.log("item ++++++++++++++++++++++");
+                console.log(item);
+                console.log(item.value);
                 return item.value.length === 1;
             }).map(function (o) {
                 return o.doc;
