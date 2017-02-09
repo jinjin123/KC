@@ -571,7 +571,9 @@ function updateOrders(order, then) {
     });
 }
 function sync1Order(od, m, s, xthen) {
+    console.log("sync1Order++++++++++++++++++++++++");
     m(od, function (data, err) {
+        console.log(data);
         if (data){
             if (data.code == 0) {
                 od.sync_status = 1;  //success
@@ -620,6 +622,8 @@ function getStoreName(order){
 
 function syncOC(m, s, docs, index, then) {
     'use strict';
+    console.log("docs length:" + docs.length);
+    console.log("index:" + index);
     if (index < docs.length) {
         var od = docs[index],
             xthen = function (order) {
