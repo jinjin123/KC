@@ -722,6 +722,8 @@ function resolveConflicts(xthen) {
     function asyncMap(data, index, result, then) {
         if((data.length > 0) && (index < data[0].key.length)) {
             get( "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], function (data, err){
+                console.log("asyncMap get+++++++++++++++++++++++");
+                console.log(data);
                 if(data){
                     result.push(x);
                 }
@@ -747,8 +749,11 @@ function resolveConflicts(xthen) {
     get("/orders/_design/kc/_view/conflicts?limit=1", function (data, err){
         console.log(data);
         if(data){
+            console.log("asyncMap++++++++++++++++++++++");
             asyncMap(data.rows, 0, [], function(results){
+                console.log(results);
                 if(results.length > 0) {
+                    console.log("asynUpdate+++++++++++++++++++++")
                     results = separate(results);
                     asyncUpdate(results.remove.concat(results.irrelevant), 0, [], function() {
                         if(results.remove.length > 0){
