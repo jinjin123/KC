@@ -743,7 +743,9 @@ function resolveConflicts(xthen) {
             }, 10000);
         }
     }
+    console.log("resolveConflicts +++++++++++++++++++++++");
     get("/orders/_design/kc/_view/conflicts?limit=1", function (data, err){
+        console.log(data);
         if(data){
             asyncMap(data.rows, 0, [], function(results){
                 if(results.length > 0) {
