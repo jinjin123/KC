@@ -338,7 +338,7 @@ function comparePOS(cfg, then){
 function deploy(para, then){
     function deployOne(t, i){
         if(i<t.length) {
-            post("_replicate", t[i].data, function (data, err){
+            post("http://localhost:5984/_replicate", t[i].data, function (data, err){
                 console.log(t[i].data);
                 if(data){
                     then(data);
