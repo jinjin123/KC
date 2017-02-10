@@ -721,11 +721,11 @@ function resolveConflicts(xthen) {
     }
     function asyncMap(data, index, result, then) {
         if((data.length > 0) && (index < data[0].key.length)) {
-            get( "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], function (data, err){
+            get( "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], function (d, err){
                 console.log("asyncMap get+++++++++++++++++++++++");
-                console.log(data);
-                if(data){
-                    result.push(x);
+                console.log(d);
+                if(d){
+                    result.push(d);
                 }
                 asyncMap(data, index + 1, result, then);
             });
