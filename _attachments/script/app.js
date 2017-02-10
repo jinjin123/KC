@@ -216,11 +216,11 @@ function run(then){
                 if(typeof(then) === 'function') {
                     then(cfg, function(){
                         receiveOC(cfg);
-                        //scanOrders(cfg, c);
+                        scanOrders(cfg, c);
                     })    
                 } else {
                     receiveOC(cfg);
-                    //scanOrders(cfg, c);                    
+                    scanOrders(cfg, c);                    
                 }
             });
         }); 
