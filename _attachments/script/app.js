@@ -38,7 +38,7 @@ function ajax(options, then){
                     console.log('---------error---------');
                     console.log(err);
                 }
-                if(typeof(then) === 'function') { 
+                if(typeof(then) === 'function') {
                     then(null,err);
                 }
             });
