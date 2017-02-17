@@ -513,7 +513,8 @@ function submitOC(cfg) {
         if (!order.orderInfo) {
             order = order.order;
         }
-        return post(cfg['oc-submitUrl'], order, fun);
+        //return post(cfg['oc-submitUrl'], order, fun);
+        return submitOCN(order);
     };
 }
 function modifyOC(cfg) {
@@ -788,7 +789,7 @@ function scanOrders(cfg, resolve) {
         }
     }
     console.log("scanOrders ++++++++++++++++++");
-    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true", function(data, err) {
+    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[4,100]&include_docs=true&conflicts=true", function(data, err) {
         console.log(data);
         if(data){
             var m = modifyOC(cfg),
