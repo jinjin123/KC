@@ -353,14 +353,14 @@ function deploy(para, then){
         then = para;
         para = undefined;
     }
-    para = para ? para : "kc.target.json"; 
+    para = para ? para : "kc.target.json";
     if(typeof(para) === 'string') {
         window.$.getJSON(para, function (result) {
             deployOne(result.target, 0);
-        });    
+        });
     } else if(isArray(para)) {
-        deployOne(result.target, 0);        
-    } 
+        deployOne(result.target, 0);
+    }
 }
 
 function loadConfig(fun) {
@@ -454,7 +454,9 @@ function orders(query, fun){
 }
 function deleteOrders(data, then){
     if(data){
-        data = JSON.parse(data);
+        console.log(typeof data);
+        console.log(data);
+        //data = JSON.parse(data);
         var tmp = {
             "docs":[]
         };
@@ -514,12 +516,13 @@ function submitOC(cfg) {
             order = order.order;
         }
         //return post(cfg['oc-submitUrl'], order, fun);
-        return submitOCN(order);
+        return submitOCN(cfg['oc-submitUrl'], order, fun);
     };
 }
 function modifyOC(cfg) {
     'use strict';
     return function (order, fun) {
+        /*
         if (!order.orderInfo) {
             order = order.order;
         }
@@ -556,6 +559,8 @@ function modifyOC(cfg) {
                 fun(data, err);
             }
         });
+        */
+        return modifyOCN(cfg['oc-modifyUrl'], order, fun);
     };
 }
 
@@ -578,19 +583,19 @@ function sync1Order(od, m, s, xthen) {
     m(od, function (data, err) {
         console.log(data);
         if (data){
-            if (data.code == 0) {
+            if (data.status == 0) {
                 od.sync_status = 1;  //success
                 od.oc_msg = data;
                 window.updateOrders(od, xthen);
-            } else if (data.code == 1001) {
+            } else if (data.status == 1001 || data.status == 404) {
                 s(od, function (data1, err1) {
                     if(data1){
-                        if(data.code == 0) {
+                        if(data.status == 0) {
                             od.sync_status = 1;  //success
                             od.oc_msg = data1;
                             window.updateOrders(od, xthen);                                
                         } else {
-                            od.sync_status = (data1.code !== undefined && data1.code !== null) ? data1.code : 2; //unknown error code has return data
+                            od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
                             od.oc_msg = data1;
                             window.updateOrders(od, xthen);
                         }
@@ -601,7 +606,7 @@ function sync1Order(od, m, s, xthen) {
                     }
                 });
             } else {
-                od.sync_status = (data.code !== undefined && data.code !== null) ? data.code : 2;  //unknown error code has return data
+                od.sync_status = (data.status !== undefined && data.status !== null) ? data.status : 2;  //unknown error code has return data
                 od.oc_msg = data;
                 window.updateOrders(od, xthen);
             }
@@ -789,7 +794,7 @@ function scanOrders(cfg, resolve) {
         }
     }
     console.log("scanOrders ++++++++++++++++++");
-    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[4,100]&include_docs=true&conflicts=true", function(data, err) {
+    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true", function(data, err) {
         console.log(data);
         if(data){
             var m = modifyOC(cfg),

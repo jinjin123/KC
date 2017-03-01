@@ -41,11 +41,11 @@
         "bindings":[]
     },
 
-    "oc-host":"sparkpadg-elasticl-2t187adkjku3-926650160.cn-north-1.elb.amazonaws.com.cn:9087",
+    "oc-host":"newoc.sparkpad-dev.com:5000",
     "oc-token":"hty4B91i8S02je45FL07AnN29UB7Hu2mZ2t1864Hk92Oji06M1397552281Th717",
-    "oc-submitUrl":"http://{{oc-host}}/newPos_oc/api/submitNewPosOrder.html?access_token={{oc-token}}",
-    "oc-modifyUrl":"http://{{oc-host}}/newPos_oc/api/modifyNewPosOrder.html?access_token={{oc-token}}&type=stpos",
-    "oc-queryUrl":"http://{{oc-host}}/newPos_oc/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",        
+    "oc-submitUrl":"http://{{oc-host}}/custom/entity/commerce_order",
+    "oc-modifyUrl":"http://{{oc-host}}/jsonapi/commerce_order/default/",
+    "oc-queryUrl":"http://{{oc-host}}/jsonapi/commerce_order/default/",        
     "oc-listUrl":"http://{{oc-host}}/newPos_oc/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999",
     "kc-name":"kc2",
     "posCfg":{
