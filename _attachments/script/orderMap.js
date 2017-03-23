@@ -44,7 +44,7 @@ function getStateO2N(s){
 			sNew = statesN.completed;
 			break;
 		case 5:
-			sNew = stateN.canceled;
+			sNew = statesN.canceled;
 			break;
 		default:
 			break;

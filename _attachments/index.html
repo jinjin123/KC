@@ -12,7 +12,7 @@
             <ul>
                 <li>
                     <input id="storeid" type="text"> 
-                    <button id="set_storeid">Set Store ID</button>   
+                    <button id="set_storeid">Set Store ID</button> 
                     <span id="result"></span>     
                     <label>Delete conflicting records</label>
                     <input id='resolve-conflicts' type="checkbox"/>      
@@ -59,9 +59,9 @@
     <script src='script/jquery-3.1.1.js'></script>    
     <script src='script/moment.min.js'></script>    
     
-    <script src="/_utils/script/sha1.js"></script>
-    <script src="/_utils/script/json2.js"></script>
-    <script src="/_utils/script/jquery.couch.js"></script>
+    <script src="script/sha1.js"></script>
+    <script src="script/json2.js"></script>
+    <script src="script/jquery.couch.js"></script>
     
     <script src="vendor/couchapp/jquery.couchLogin.js"></script>
     <script src="vendor/couchapp/jquery.couchProfile.js"></script>
@@ -88,7 +88,7 @@
                         });
                     });
                 });      
-                $('#storeid').val(cfg['store-id']);          
+                $('#storeid').val(cfg['store-id']);  
                 
                 function log_result(data, err){
                     if(data){
@@ -164,6 +164,19 @@
                 });
                 $('#set_storeid').click(function() {
                     setLocal('store-id', $('#storeid').val(), function(data, err) {
+                        if(!data){
+                            $("#result").html(JSON.stringify(err));
+                        } else {
+                            loadConfig(function(cfg){
+                                setLocal("configuration", cfg, function(data, err){
+                                    console.log(data ? data : err);
+                                });
+                            }); 
+                        }
+                    });
+                });
+                $('#set_businessid').click(function() {
+                    setLocal('business-id', $('#businessid').val(), function(data, err) {
                         if(!data){
                             $("#result").html(JSON.stringify(err));
                         } else {

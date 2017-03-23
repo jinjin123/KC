@@ -47,17 +47,20 @@ function ajaxN(url, method, data, then){
       }
   });
 }
+
 function submitOCN(url, order, then){
   var data = O2N(order);
 	//url = "http://newoc.sparkpad-dev.com:5000/custom/entity/commerce_order";
   ajaxN(url,"post", data, then);
 }
+
 function modifyOCN(url, order, then){
   var obj = getUpdateObj(order);
 	//var url = "http://newoc.sparkpad-dev.com:5000/jsonapi/commerce_order/default/?_format=api_json&include=order_items&filter[order_number][value][]=1";
   url = checkUrl(url) + obj.data.id + "?_format=api_json";
   ajaxN(url, "patch", obj, then);
 }
+
 function checkUrl(url) {
   if(!url){ return "";}
   if(url.substr(-1, 1) != "/"){

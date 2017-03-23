@@ -445,7 +445,7 @@ function loadConfig(fun) {
                 });
             });
         } else {
-            throw "Missing argument 'fun'!";
+          throw "Missing argument 'fun'!";
         }
     });
 }
@@ -578,8 +578,81 @@ function updateOrders(order, then) {
         }
     });
 }
+function updateOrdersSubmited(order, then) {
+    'use strict';
+    order.timestamp = order.timestamp ? order.timestamp : getDate();
+    order.order.submited = true;
+    window.$.couch.db('orders').saveDoc(order, {
+        success: function (data) {
+            console.log('update sync_status '+order._id+' success', data);
+            then(order);
+        },
+        error: function (status) {
+            console.log('update sync_status '+order._id+' failed', status);
+            then(order);
+        }
+    });
+}
 function sync1Order(od, m, s, xthen) {
     console.log("sync1Order++++++++++++++++++++++++");
+    console.log(od);
+    if(od.order.submited == true){
+      m(od, function (data, err) {
+        console.log(data);
+        if (data){
+            if (data.status == 0) {
+                od.sync_status = 1;  //success
+                od.oc_msg = data;
+                window.updateOrders(od, xthen);
+            } else if (data.status == 1001 || data.status == 404) {
+                s(od, function (data1, err1) {
+                    if(data1){
+                        if(data.status == 0) {
+                            od.sync_status = 1;  //success
+                            od.oc_msg = data1;
+                            window.updateOrdersSubmited(od, xthen);                            
+                        } else {
+                            od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
+                            od.oc_msg = data1;
+                            window.updateOrders(od, xthen);
+                        }
+                    } else {
+                        od.sync_status = 3;  //unknown error code, no return data
+                        od.oc_msg = err1;
+                        window.updateOrders(od, xthen);
+                    }
+                });
+            } else {
+                od.sync_status = (data.status !== undefined && data.status !== null) ? data.status : 2;  //unknown error code has return data
+                od.oc_msg = data;
+                window.updateOrders(od, xthen);
+            }
+        } else {
+            od.sync_status = 3;  //unknown error code, no return data
+            od.oc_msg = err;
+            window.updateOrders(od, xthen);                
+        }
+      });    
+    }else{
+      s(od, function (data1, err1) {
+          if(data1){
+              if(od.status == 0) {
+                  od.sync_status = 1;  //success
+                  od.oc_msg = data1;
+                  window.updateOrdersSubmited(od, xthen);                                
+              } else {
+                  od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
+                  od.oc_msg = data1;
+                  window.updateOrders(od, xthen);
+              }
+          } else {
+              od.sync_status = 3;  //unknown error code, no return data
+              od.oc_msg = err1;
+              window.updateOrders(od, xthen);
+          }
+      });
+    }
+    /*
     m(od, function (data, err) {
         console.log(data);
         if (data){
@@ -615,7 +688,8 @@ function sync1Order(od, m, s, xthen) {
             od.oc_msg = err;
             window.updateOrders(od, xthen);                
         }
-    });    
+    }); 
+  */   
 }
 function getStoreName(order){
     if(order){
