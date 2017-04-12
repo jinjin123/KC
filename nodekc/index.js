@@ -45,14 +45,14 @@ function parseURL(url){
         return {
             protocol:value(m[1], "http://"),
             host:value(m[4], "127.0.0.1"),
-            port:value(m[5], ":5984")
+            port:value(m[5], ":80")
         }
     } else {
         return {
             protocol:"http://",
             host:"127.0.0.1",
             port:":5984"
-        }        
+        }
     }
 }
 var urlComponents;
@@ -70,7 +70,10 @@ function getURL(url, path){
     return urlComponents.protocol + urlComponents.host + urlComponents.port + path;
 }
 function getKCURL(url, file){
-    return getURL(url, "/orders/_design/kc/" + file);
+    if(file.match(/^\/code\/_design\/kc\//)){
+        return getURL(url, file);
+    }
+    return getURL(url, "/code/_design/kc/" + file);
 }
 function getRootURL(url, file){
     return getURL(url, "/" + file);
@@ -91,8 +94,12 @@ var URL = require('url');
 var request = require('request');
 var express = require("express");
 var jsdom = require("jsdom");
-var args = process.argv.splice(2);  
-var baseurl = (args && (args.length > 0)) ? args[0] : "http://127.0.0.1:5984/";
+var baseurl;
+if(!baseurl) {
+    var args = process.argv.splice(2);  
+    baseurl = (args && (args.length > 0)) ? args[0] : "http://127.0.0.1:5984ƒ";    
+}
+
 var cluster = require('cluster');
 cluster.on('exit', function(w){
     console.log('KC %d died :(', w.id);
@@ -106,6 +113,9 @@ cluster.on('exit', function(w){
 });
 if(cluster.isMaster) {
     //console.log('in master');
+    cluster.setupMaster({
+        args: [baseurl]
+    });      
     cluster.fork();
 } else {
     process.on('uncaughtException', function(err) {
@@ -121,13 +131,6 @@ if(cluster.isMaster) {
                 console.log('Can not load KC from ' + getKCURL(baseurl, "index.html"));
                 process.exit(100);
             }
-            function rewriteGet(oldp, newp) {
-                console.log(oldp + ' ==>> ' + newp);
-                app.get(newp, function (req, res) {
-                    var newurl = getKCURL(baseurl, oldp);
-                    request(newurl).pipe(res);
-                });
-            }
             win = window;
             window.WebSocket = require('ws');
             setTimeout(function(){
@@ -135,8 +138,16 @@ if(cluster.isMaster) {
                 for(i in tmp) {
                     var x = tmp[i];
                     if(x.type === 'anchor') {
-                        rewriteGet(x.href, '/' + x.name);
+                        console.log(">>> pipe " + x.name + " ==>> " + x.href);
+
+                        app.get('/' + x.name, (function(href){
+                            return function(req, res) {
+                                console.log("href: " + href);
+                                request(href).pipe(res);
+                            }
+                        })(x.href));                        
                     } else if (x.type === 'function'){
+                        console.log(">>> resource " + x.name);
                         app.get('/' + x.name, function(req, res){
                             if(typeof(x.function) === 'function'){
                                 x.function.call(app, req, res, tmp);
@@ -146,10 +157,12 @@ if(cluster.isMaster) {
                 }
                 app.get("/refresh", function(req, res){
                     console.log("refresh");
+                    res.status(200).end();
                     process.exit(100);
                 });                
                 app.get("/exit", function(req, res){
                     console.log("exit");
+                    res.status(200).end();
                     process.exit(0);
                 });
                 app.get("/config-data-center-mq", function(req, res){
@@ -164,7 +177,7 @@ if(cluster.isMaster) {
                     });
                 });
                 app.listen(3000, function(){
-                    window.run(function(cfg, then){
+                    window.run(1, function(cfg, then){
                         configMQ(window.getMQConfig(cfg),function(err, httpResponse, body) {
                             if (err) {
                                 console.error('upload failed:', err);

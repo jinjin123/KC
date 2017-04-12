@@ -16,6 +16,28 @@ var statesN = {
     returned: "returned"
 };
 
+var OCStatesNum = {
+  draft: 0,
+  fulfillment: 1,
+  wait_for_buyer_to_pay: 2,
+  buyer_has_paid: 3,
+  preparing: 4,
+  ready: 5,
+  delivering: 6,
+  completed: 7,
+  canceled: 8,
+  returned: 9
+};
+
+function getNameByNum(s){
+	for(var i in OCStatesNum){
+		if(OCStatesNum[i] == s){
+			return i;
+		}
+	}
+	return "draft";
+}
+
 var updateO2N = {
   orderid: "order_number",
   orderstatus: "state",
@@ -51,11 +73,18 @@ function getStateO2N(s){
 	}
 	return sNew;
 }
+function getUUID(o){
+	if(o.uuid){
+		return o.uuid;
+	}else{
+		return o.orderInfo.orderid;
+	}
+}
 function O2N(o){
 	var obj = {};
 	var oInfo = o.orderInfo;
 	var oPros = o.productList;
-	obj.uuid = o.uuid
+	obj.uuid = getUUID(o);//o.uuid
 	obj.mail = "testrest@test.com";
 	obj.field_crm_customer_id = o.field_crm_customer_id;
 	obj.field_de_business_id = o.field_de_business_id; //43;
@@ -130,22 +159,20 @@ function getUpdateObj(order){
           "paytime"];
     
   for (var i in f) {
-      var k = f[i];
-      var v = order.orderInfo[k];
-      if(v !== undefined && v !== null) {
-          if(v != null && v != ""){
-            if(k == "deliverytime" || k == "receivetime" || k == "returntime" ||
-              k == "canceltime" || k == "paytime"){
-              v = getTimeCount(v);
-            }
-            if(k == "orderstatus"){
-              v = getStateO2N(v);
-              d[updateO2N[k]] = v;
-            }
-            
-          }
-              
+    var k = f[i];
+    var v = order.orderInfo[k];
+    if(v !== undefined && v !== null) {
+      if(v != null && v != ""){
+        if(k == "deliverytime" || k == "receivetime" || k == "returntime" ||
+          k == "canceltime" || k == "paytime"){
+          v = getTimeCount(v);
+        }
+        if(k == "orderstatus"){
+          v = getStateO2N(v);
+          d[updateO2N[k]] = v;
+        }
       }
+    }
   }
   var obj = {
     data: {

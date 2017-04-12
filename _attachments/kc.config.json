@@ -79,5 +79,9 @@
         "oc-queryUrl":"http://{{oc-host}}/api/queryOrderMasterDetail.html?access_token={{oc-token}}&orderid=",
         "oc-refundStatus" : "http://{{oc-host}}/newPos_oc/api/updateRefundStatus.html?access_token={{oc-token}}",      
         "oc-listUrl":"http://{{oc-host}}/api/queryOrderListByPage.html?access_token={{oc-token}}&storeid2={{store-id}}&iDisplayStart=0&iDisplayLength=999999999"
-    }
+    },
+    "OC-CFG":[
+      {"bid": "b726", "uoc":"restws.gtdx", "poc": "restws.gtdx", "udb":"jan", "pdb":"apple1"},
+      {"bid": "b727", "uoc":"restws.yc", "poc": "restws.yc", "udb":"jan2", "pdb":"apple1"}
+    ]
 }

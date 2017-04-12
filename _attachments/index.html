@@ -1,43 +1,42 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>KC 3.0.0</title>
+        <title>KC</title>
         <link rel="stylesheet" href="style/main.css" type="text/css">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     </head>
     <body>
-        <h1>KC 3.0.0</h1>
-
+        <h1>KC 3.0.15</h1>
         <div id="main">
             <ul>
                 <li>
                     <input id="storeid" type="text"> 
                     <button id="set_storeid">Set Store ID</button> 
                     <span id="result"></span>     
-                    <label>Delete conflicting records</label>
-                    <input id='resolve-conflicts' type="checkbox"/>      
-                    <a href="/_utils/database.html?orders">CouchDB UI</a>
+                    <a href="/_utils/database.html?orders" target="_blank">CouchDB UI</a>
                     <button id="start-kc">Start KC</button>
                 </li>
                 <li>
-                    <a href="kc.config.json">Pre-processing configuration</a>
-                    <a href="/orders/_local/configuration">Post-processing configuration</a>
-                    <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts">Conflicting orders</a>
-                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true">Synchronized orders</a>
-                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true">New orders</a>
+                    <a href="kc.config.json" target="_blank">Pre-processing configuration</a>
+                    <a name="config" class="url" href="/orders/_local/configuration" target="_blank">Post-processing configuration</a>
                 </li>
                 <li>
-                    <button id="cleanAll">Delete all orders</button>
-                    <button id="clean">Delete old orders</button>
-                    <button id="compact">Compact database</button>
-                    <button id="release">Synchronize software</button>
-                    <button id="compareOC">Compare to OC</button>
-                    <button id="comparePOS">Compare to POS</button>                    
+                    <a name="conflicts" class="url" href="/orders/_design/kc/_view/conflicts" target="_blank">Conflicting orders</a>
+                    <a name="success" class="url" href="/orders/_design/kc/_view/status?startkey=[1,0]&endkey=[1,100]&include_docs=true&conflicts=true" target="_blank">Synchronized orders</a>
+                    <a name="waiting" class="url" href="/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true" target="_blank">New orders</a>
+                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[99999,100]&include_docs=true&conflicts=true" target="_blank">Failed orders</a>
                 </li>
                 <li>
-                    <a name="failed" class="url" href="/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[99999,100]&include_docs=true&conflicts=true">Failed orders</a>
-                    <span>                  </span>
-                    <button id="retry_failed_orders">Retry</button>
+                    <span>Date range</span>
+                    <input id="date_range" type="number" value="1"/>
+                    <span>Sync status</span>
+                    <input id="sync_status" type="number" value="2"/>
+                    <span>Order status</span>
+                    <input id="order_status" type="number" value="3"/>                    
+                    <button id="search">Search</button>
+                </li>
+                <li>
+                    <button id="comparePOS">Compare to POS</button>
                 </li>
                 <li>
                     <label>Order ID</label>
@@ -54,6 +53,7 @@
                     Stomp: <span id='stomp_info'></span>
                 </li>
             </ul>
+
         </div>
     </body>
     <script src='script/jquery-3.1.1.js'></script>    
@@ -79,16 +79,9 @@
         $(document).ready(function() {
             loadConfig(function(cfg) {
                 window.CONFIG = cfg;
-
-                getLocal('resolve-conflicts', function(data, err){
-                    $('#resolve-conflicts').get(0).checked = data;
-                    $('#resolve-conflicts').click(function() {
-                        setLocal('resolve-conflicts', $('#resolve-conflicts').get(0).checked, function() {
-                            document.location = document.location;
-                        });
-                    });
-                });      
-                $('#storeid').val(cfg['store-id']);  
+                console.log("cfg++++++++++++++++++++++++++");
+                console.log(cfg);
+                $('#storeid').val(cfg['store-id']);          
                 
                 function log_result(data, err){
                     if(data){
@@ -98,19 +91,21 @@
                     }                     
                 }
                 $('#start-kc').click(function(){
-                    getLocal('resolve-conflicts', function(c, err){
-                        receiveOC(cfg);
-                        scanOrders(cfg, c);                    
-                    });
+                    //receiveOC(cfg);
+                    //scanOrders($('#date_range').val(), cfg);
+                    //scanDatabase($('#date_range').val(), cfg);
+                    multipleAjax($('#date_range').val(), cfg).run();    
                 });                
-                $('#compact').click(function(){
-                    compact(log_result);
-                });
-                $('#release').click(function(){
-                    deploy(log_result);
-                });
-                $('#compareOC').click(function(){
-                    compareOC(cfg, log_result);
+                $('#search').click(function(){
+                    var today = new Date();
+                    var yesterday = new Date();
+                    var days = $('#date_range').val();
+                    var sync_status = $('#sync_status').val();
+                    var order_status = $('#order_status').val();
+                    yesterday.setDate(yesterday.getDate()-days);
+                    today = encodeURI(getDate(today));
+                    yesterday = encodeURI(getDate(yesterday));
+                    window.open("/orders/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\","+sync_status+","+order_status+"]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true",'_blank');
                 });
                 $('#comparePOS').click(function(){
                     if(!window.mq) {
@@ -145,38 +140,9 @@
                         });                        
                     }
                 });                
-                $('#cleanAll').click(function(){
-                    orders('status?endkey=[9999,9999]', function(data, err){
-                        if(data){
-                            deleteOrders(data, log_result)
-                        }
-                    })
-                });
-                $('#clean').click(function(){
-                    ordersBefore(30, function(data, err){
-                        if(data){
-                            deleteOrders(data, log_result);
-                        }
-                    });
-                });
-                $('#retry_failed_orders').click(function () {
-                    retryFailed(cfg, log_result);
-                });
+
                 $('#set_storeid').click(function() {
                     setLocal('store-id', $('#storeid').val(), function(data, err) {
-                        if(!data){
-                            $("#result").html(JSON.stringify(err));
-                        } else {
-                            loadConfig(function(cfg){
-                                setLocal("configuration", cfg, function(data, err){
-                                    console.log(data ? data : err);
-                                });
-                            }); 
-                        }
-                    });
-                });
-                $('#set_businessid').click(function() {
-                    setLocal('business-id', $('#businessid').val(), function(data, err) {
                         if(!data){
                             $("#result").html(JSON.stringify(err));
                         } else {

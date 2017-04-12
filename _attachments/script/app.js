@@ -1,9 +1,40 @@
-
+/**
+ * gether all configuration related code into a module for other app to use
+ *    common configure structure
+ *    variable susbstitution mechanisms
+ *    
+ * support browser to browser RPC
+ * 
+ * gether communication related code into a module for other app to use mq
+ * 
+ * monitoring
+ */
 function getDate(d, fmt){
     d = d ? d : (new Date());
     fmt = fmt ? fmt : 'YYYYMMDDHHmmss';
     return moment(d).format(fmt);
 }
+function getOrderTimestamp(doc){
+    function convertDate(d) {
+        if(typeof(d) === 'string') {
+            var m = d.match(/([0-9]+)-([0-9]+)-([0-9]+) ([0-9]+):([0-9]+):([0-9]+)/);
+            if(m){
+                return m[1] + m[2] + m[3] + m[4] + m[5] + m[6];    
+            }            
+        }
+    }
+    if(doc && doc.order && doc.order.orderInfo){
+        var info = doc.order.orderInfo;
+        var fields = ['addtime', 'booktime', 'paytime', 'returntime', 'canceltime', 'mealstime', 'deliverytime', 'receivetime'];
+        for(var i in fields) {
+            var ret = convertDate(info[fields[i]]); 
+            if(ret){
+                return ret;
+            }   
+        }
+        return doc.timestamp ? doc.timestamp : getDate();
+    } 
+} 
 function isArray(o){
     return Object.prototype.toString.call(o) == '[object Array]';
 }
@@ -17,13 +48,19 @@ function ajaxError(jqXHR, textStatus, errorThrown, options){
         "options":options
     };
 }
-function ajax(options, then){
+var CONFIG;
+
+function ajax(user, password, options, then){
     if (typeof(options) === 'object') {
         if(options) {
             var verbose = options.verbose;
             delete options.verbose;
             options.timeout = options.timeout ? options.timeout : 60000;
-            options.crossOrigin = true;
+            if(user && password) {
+                options.headers = {
+                    "Authorization": "Basic " + btoa(user + ":" + password)
+                };                
+            }
             return window.$.ajax(options).done(function (data, textStatus, jqXHR) {
                 if(verbose){
                     console.log('--------success--------');
@@ -45,21 +82,21 @@ function ajax(options, then){
         }
     }
 }
-function get(url, then){
-    return ajax({
+function get(url, user, password, then){
+    return ajax(user, password, {
         url:url,
         dataType: 'json',
         cache: false,
         crossDomain: true
     }, then);
 }
-function put_post(method, url, data, then){
+function put_post(method, url, user, password, data, then){
     if (typeof(data) === 'function') {
         then =  data;
         data = undefined;
     }
     if(data === undefined) {
-        return ajax({
+        return ajax(user, password, {
             url:url,
             method: method,
             data:"",
@@ -70,7 +107,7 @@ function put_post(method, url, data, then){
             crossDomain: true  
         }, then);
     } else {
-        return ajax({
+        return ajax(user, password, {
             url:url,
             method: method,
             data:JSON.stringify(data),
@@ -82,11 +119,11 @@ function put_post(method, url, data, then){
         }, then);
     }    
 }
-function post(url, data, then) {
-    return put_post('POST', url, data, then);
+function post(url, user, password, data, then) {
+    return put_post('POST', url, user, password, data, then);
 }
-function put(url, data, then) {
-    return put_post('PUT', url, data, then);
+function put(url, user, password, data, then) {
+    return put_post('PUT', url, user, password, data, then);
 }
 function topic(cfg, on_err, on_dbg) {
     'use strict';
@@ -206,24 +243,24 @@ function queue(cfg, on_err, on_dbg) {
     return ret;
 }
 
-function run(then){
+function run(retry_day, then){
     console.log('run...')
     loadConfig(function(cfg){
-        getLocal('resolve-conflicts', function(c, err){
-            setLocal("configuration", cfg, function(data, err){
-                console.log("run resolve-conflicts +++++++++++");
-                console.log(c);
-                if(typeof(then) === 'function') {
-                    then(cfg, function(){
-                        receiveOC(cfg);
-                        scanOrders(cfg, c);
-                    })    
-                } else {
-                    receiveOC(cfg);
-                    scanOrders(cfg, c);                    
-                }
-            });
-        }); 
+        setLocal("configuration", cfg, function(data, err){
+            if(typeof(then) === 'function') {
+                then(cfg, function(){
+                    //receiveOC(cfg);
+                    //scanOrders(retry_day, cfg);
+                    multipleAjax(retry_day, cfg).run();
+                    //scanDatabase(retry_day, cfg);
+                })    
+            } else {
+                //receiveOC(cfg);
+                //scanOrders(retry_day, cfg);
+                multipleAjax(retry_day, cfg).run();
+                //scanDatabase(retry_day, cfg);                  
+            }
+        });
     });
 }
 function getAllURLs(){
@@ -306,7 +343,7 @@ function receiveOC(cfg) {
         var i;
         for(i=0 ;i < cfg['mq-config'].parameters.length; ++i){
             if(cfg['mq-config'].parameters[i].name === name){
-                return cfg['mq-config'].parameters[i].value;
+              return cfg['mq-config'].parameters[i].value;
             }        
         }
     }
@@ -316,7 +353,7 @@ function receiveOC(cfg) {
             var doc = {
                 _id: msg.orderInfo.orderid,
                 sync_status: 1,
-                timestamp: getDate(),
+                timestamp: getOrderTimestamp(msg),
                 oc_msg: null,
                 order: msg
             };
@@ -326,41 +363,6 @@ function receiveOC(cfg) {
         }, from_oc["dest-queue"]);
     }
     return mq;
-}
-
-function compareOC(cfg, then){
-    return get(cfg['oc-listUrl'], then);
-}
-
-function comparePOS(cfg, then){
-
-}
-function deploy(para, then){
-    function deployOne(t, i){
-        if(i<t.length) {
-            post("http://localhost:5984/_replicate", t[i].data, function (data, err){
-                console.log(t[i].data);
-                if(data){
-                    then(data);
-                } else {
-                    then(null, err);
-                }
-                deployOne(t, i+1);
-            });
-        } 
-    }
-    if(typeof(para) === 'function') {
-        then = para;
-        para = undefined;
-    }
-    para = para ? para : "kc.target.json";
-    if(typeof(para) === 'string') {
-        window.$.getJSON(para, function (result) {
-            deployOne(result.target, 0);
-        });
-    } else if(isArray(para)) {
-        deployOne(result.target, 0);
-    }
 }
 
 function loadConfig(fun) {
@@ -430,32 +432,34 @@ function loadConfig(fun) {
         }
     }
     window.$.getJSON("kc.config.json", function (result) {
-        result.baseurl = document.location.protocol + '//' + document.location.host +'/orders/_design/kc';
+        console.log("loading get json +++++++++++");
+        console.log(result);
+        result.baseurl = document.location.protocol + '//' + document.location.host +'/code/_design/kc';
         result.hostname = document.location.hostname;
         if (typeof (fun) === "function") {
             var variables = {};
             result = collect(result, variables);
             variables = obj2array(variables);
+            console.log(variables);
             resolve(variables, 0, {}, function(rlt){
                 result = render(result, rlt, ["{%", "%}"]);
                 window.Mustache.clearCache();
                 var xcfg = render(result, result);
                 setupShovel(xcfg, function(data, err) {
+                    CONFIG = xcfg;
                     fun(xcfg);
                 });
             });
         } else {
-          throw "Missing argument 'fun'!";
+            throw "Missing argument 'fun'!";
         }
     });
 }
-function orders(query, fun){
-    return get('/orders/_design/kc/_view/' + query, fun);
+function orders(dbcfg, query, fun){
+    return get('/' + dbcfg["bid"] + '/_design/kc/_view/' + query, dbcfg["udb"], dbcfg["pdb"], fun);
 }
-function deleteOrders(data, then){
+function deleteOrders(dbcfg, data, then){
     if(data){
-        console.log(typeof data);
-        console.log(data);
         //data = JSON.parse(data);
         var tmp = {
             "docs":[]
@@ -469,14 +473,15 @@ function deleteOrders(data, then){
                 });
             }
         }
-        return post("/orders/_bulk_docs", tmp, then);
+        console.log("INFO: Delete ", tmp);
+        return post("/" + dbcfg["bid"] + "/_bulk_docs", dbcfg["udb"], dbcfg["pdb"], tmp, then);
     }
 }
-function ordersBefore(x, fun) {
+function ordersBefore(dbcfg, x, fun) {
     var now = new Date();
     now.setDate(now.getDate()-x);
     now = getDate(now);
-    return orders('timestamp?endkey=' + encodeURI(now), fun);
+    return orders(dbcfg, 'timestamp?endkey=' + encodeURI(now), fun);
 }
 function getMQConfig(cfg){
     return {
@@ -485,10 +490,10 @@ function getMQConfig(cfg){
     };
 }
 
-function compact(then){
-    return post("/orders/_compact", function(data, err){
+function compact(dbcfg, then){
+    return post("/" + dbcfg["bid"] + "/_compact", dbcfg["udb"], dbcfg["pdb"],  function(data, err){
         if(data){
-            post("/orders/_compact/kc", then);
+            post("/" + dbcfg["bid"] + "/_compact/kc", dbcfg["udb"], dbcfg["pdb"], then);
         } else {
             then(data, err);
         }
@@ -511,185 +516,157 @@ function queryOC(cfg) {
 
 function submitOC(cfg) {
     'use strict';
-    return function (order, fun) {
+    return function (user, password, order, fun) {
         if (!order.orderInfo) {
             order = order.order;
         }
         //return post(cfg['oc-submitUrl'], order, fun);
-        return submitOCN(cfg['oc-submitUrl'], order, fun);
+        return submitOCN(cfg['oc-submitUrl'], user, password, order, fun);
     };
 }
 function modifyOC(cfg) {
     'use strict';
-    return function (order, fun) {
-        /*
-        if (!order.orderInfo) {
-            order = order.order;
-        }
-        var d = {},
-            f = ["orderid",
-                "orderstatus",
-                "cancelorderoperator",
-                "deliveryway",
-                "ischange",
-                "Isneedinvoice",
-                "Invoicetitle",
-                "mealstime",
-                "deliverytime",
-                "receivetime",
-                "returntime",
-                "canceltime",
-                "paytime"];
-        
-        for (var i in f) {
-            var k = f[i];
-            var v = order.orderInfo[k];
-            if(v !== undefined && v !== null) {
-                d[k] = v;    
-            }
-        }
-        return post(cfg['oc-modifyUrl'], d, function(data, err){
-            if(order.orderInfo.returntime) {
-                post(cfg['oc-refundStatus'], {
-                        orderid:order.orderInfo.orderid,
-                        redundstatus:"1",
-                        redundCheckStatus:"4"
-                    }, fun);
-            } else {
-                fun(data, err);
-            }
-        });
-        */
-        return modifyOCN(cfg['oc-modifyUrl'], order, fun);
+    return function (user, password, order, fun) {
+      return modifyOCN(cfg['oc-modifyUrl'], user, password, order, fun);
     };
 }
 
-function updateOrders(order, then) {
+function updateOrders(dbcfg, order, then) {
     'use strict';
-    order.timestamp = order.timestamp ? order.timestamp : getDate();
-    window.$.couch.db('orders').saveDoc(order, {
+    order.modifier = 'kc2';
+    order.timestamp = getOrderTimestamp(order);
+    window.$.couch.db(dbcfg["bid"]).saveDoc(order, {
+        username: dbcfg["udb"],
+        password: dbcfg["pdb"],
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
+        },
         success: function (data) {
             console.log('update sync_status '+order._id+' success', data);
             then(order);
         },
         error: function (status) {
+            console.log("udb:" + dbcfg["udb"]);
+            console.log("pdb:" + dbcfg["pdb"]);
             console.log('update sync_status '+order._id+' failed', status);
             then(order);
         }
-    });
-}
-function updateOrdersSubmited(order, then) {
-    'use strict';
-    order.timestamp = order.timestamp ? order.timestamp : getDate();
-    order.order.submited = true;
-    window.$.couch.db('orders').saveDoc(order, {
-        success: function (data) {
-            console.log('update sync_status '+order._id+' success', data);
-            then(order);
-        },
-        error: function (status) {
-            console.log('update sync_status '+order._id+' failed', status);
-            then(order);
+    },{
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
         }
     });
 }
-function sync1Order(od, m, s, xthen) {
+function sync1Order(dbcfg, od, m, s, xthen) {
     console.log("sync1Order++++++++++++++++++++++++");
-    console.log(od);
     if(od.order.submited == true){
-      m(od, function (data, err) {
+      m(dbcfg["uoc"], dbcfg["poc"], od, function (data, err) {
         console.log(data);
-        if (data){
-            if (data.status == 0) {
+        if (data) {
+            if (data.status == 200) {
                 od.sync_status = 1;  //success
                 od.oc_msg = data;
-                window.updateOrders(od, xthen);
-            } else if (data.status == 1001 || data.status == 404) {
-                s(od, function (data1, err1) {
+                //window.updateOrders(dbcfg, od, xthen);
+                window._updateDB(dbcfg, od, xthen);
+            } else if (data.status == 404) {
+                console.log("00000000000000000000000000000000000000000000000000000000000");
+                s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
                     if(data1){
-                        if(data.status == 0) {
+                        if(data1.status == 200) {
                             od.sync_status = 1;  //success
+                            data1.responseJSON = null;
+                            data1.responseText = null;
                             od.oc_msg = data1;
-                            window.updateOrdersSubmited(od, xthen);                            
+                            od.order.submited = true;
+                            //window.updateOrdersSubmited(dbcfg, od, xthen);
+                            window._updateDB(dbcfg, od, xthen);                           
+                        }else if(data1.status == 409){
+                          console.log("if 0000000000000000000000000000000000");
+                          console.log(od);
+                          data1.responseJSON = null;
+                          data1.responseText = null;
+                          od.sync_status = 1;  //success
+                          od.oc_msg = data1;
+                          od.order.submited = true;
+                          //window.updateOrdersSubmited(dbcfg, od, xthen);
+                          window._updateDB(dbcfg, od, xthen);
                         } else {
                             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
+                            //unknown error code has return data1
+                            if(od.sync_status == 200){
+                                od.sync_status = 30;
+                            }
                             od.oc_msg = data1;
-                            window.updateOrders(od, xthen);
+                            //window.updateOrders(dbcfg, od, xthen);
+                            window._updateDB(dbcfg, od, xthen);
                         }
                     } else {
                         od.sync_status = 3;  //unknown error code, no return data
                         od.oc_msg = err1;
-                        window.updateOrders(od, xthen);
+                        //window.updateOrders(dbcfg, od, xthen);
+                        window._updateDB(dbcfg, od, xthen);
                     }
                 });
             } else {
                 od.sync_status = (data.status !== undefined && data.status !== null) ? data.status : 2;  //unknown error code has return data
+                //unknown error code has return data
+                if(od.sync_status == 200){
+                  od.sync_status = 20;
+                }                
                 od.oc_msg = data;
-                window.updateOrders(od, xthen);
+                //window.updateOrders(dbcfg, od, xthen);
+                window._updateDB(dbcfg, od, xthen);
             }
         } else {
             od.sync_status = 3;  //unknown error code, no return data
             od.oc_msg = err;
-            window.updateOrders(od, xthen);                
+            //window.updateOrders(dbcfg, od, xthen);
+            window._updateDB(dbcfg, od, xthen);               
         }
-      });    
+      });
     }else{
-      s(od, function (data1, err1) {
-          if(data1){
-              if(od.status == 0) {
-                  od.sync_status = 1;  //success
-                  od.oc_msg = data1;
-                  window.updateOrdersSubmited(od, xthen);                                
-              } else {
-                  od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
-                  od.oc_msg = data1;
-                  window.updateOrders(od, xthen);
-              }
-          } else {
-              od.sync_status = 3;  //unknown error code, no return data
-              od.oc_msg = err1;
-              window.updateOrders(od, xthen);
+      od.order.BeforSubmittingTime = getDate();
+      s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
+        console.log("++++++++++++++++++++++++++submit++++++++++++++++++++++++++++");
+        if(data1){
+          if(data1.status == 200) {
+            od.sync_status = 1;  //success
+            data1.responseJSON = null;
+            data1.responseText = null;
+            od.oc_msg = data1;
+            od.order.AfterSubmittingTime = getDate();
+            od.order.submited = true;
+            //window.updateOrdersSubmited(dbcfg, od, xthen);
+            window._updateDB(dbcfg, od, xthen);                               
+          }else if(data1.status == 409 || data1.status == 500){
+            console.log("else 00000000000000000000000000000000000000");
+            console.log(od);
+            od.sync_status = 1;
+            data1.responseJSON = null;
+            data1.responseText = null;
+            od.oc_msg = data1;
+            od.order.AfterSubmittingTime = getDate();
+            od.order.submited = true;
+            //window.updateOrdersSubmited(dbcfg, od, xthen);
+            window._updateDB(dbcfg, od, xthen);
+          }else{
+            od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
+            //unknown error code has return data1
+            if(od.sync_status == 200){
+              od.sync_status = 30;
+            }
+            od.oc_msg = data1;
+            //window.updateOrders(dbcfg, od, xthen);
+            window._updateDB(dbcfg, od, xthen);
           }
+        }else{
+          od.sync_status = 3;  //unknown error code, no return data
+          od.oc_msg = err1;
+          //window.updateOrders(dbcfg, od, xthen);
+          window._updateDB(dbcfg, od, xthen);
+        }
       });
     }
-    /*
-    m(od, function (data, err) {
-        console.log(data);
-        if (data){
-            if (data.status == 0) {
-                od.sync_status = 1;  //success
-                od.oc_msg = data;
-                window.updateOrders(od, xthen);
-            } else if (data.status == 1001 || data.status == 404) {
-                s(od, function (data1, err1) {
-                    if(data1){
-                        if(data.status == 0) {
-                            od.sync_status = 1;  //success
-                            od.oc_msg = data1;
-                            window.updateOrders(od, xthen);                                
-                        } else {
-                            od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
-                            od.oc_msg = data1;
-                            window.updateOrders(od, xthen);
-                        }
-                    } else {
-                        od.sync_status = 3;  //unknown error code, no return data
-                        od.oc_msg = err1;
-                        window.updateOrders(od, xthen);
-                    }
-                });
-            } else {
-                od.sync_status = (data.status !== undefined && data.status !== null) ? data.status : 2;  //unknown error code has return data
-                od.oc_msg = data;
-                window.updateOrders(od, xthen);
-            }
-        } else {
-            od.sync_status = 3;  //unknown error code, no return data
-            od.oc_msg = err;
-            window.updateOrders(od, xthen);                
-        }
-    }); 
-  */   
 }
 function getStoreName(order){
     if(order){
@@ -702,7 +679,7 @@ function getStoreName(order){
 
 
 
-function syncOC(m, s, docs, index, then) {
+function syncOC(dbcfg, m, s, docs, index, then) {
     'use strict';
     console.log("docs length:" + docs.length);
     console.log("index:" + index);
@@ -710,10 +687,10 @@ function syncOC(m, s, docs, index, then) {
         var od = docs[index],
             xthen = function (order) {
                 console.log("after sync to OC storename=" + getStoreName(order.order));
-                syncOC(m, s, docs, index + 1, then);
+                syncOC(dbcfg, m, s, docs, index + 1, then);
             };
         console.log("before sync to OC storename=" + getStoreName(od.order));
-        window.sync1Order(od, m, s, xthen);
+        window.sync1Order(dbcfg, od, m, s, xthen);
     } else {
         then();
     }
@@ -724,7 +701,7 @@ var scanDBCounter = {
 };
 function getRawLocal(key, then){
     console.log('getRawLocal('+key+', ...)');
-    return get("/orders/_local/"+ key, then);
+    return get("/code/_local/"+ key,null, null, then);
 }
 function getLocal(key, then){
     getRawLocal(key, function(data, err){
@@ -734,7 +711,7 @@ function getLocal(key, then){
 
 function setRawLocal(key, v, then){
     console.log('setRawLocal('+key+', ' + v + ', ...)');
-    return put("/orders/_local/" + key, v, then);
+    return put("/code/_local/" + key, null, null, v, then);
 }
 function setLocal(key, v, then){
     getRawLocal(key, function(data, err){
@@ -748,20 +725,20 @@ function setLocal(key, v, then){
 }
 
 
-function resolveConflicts(xthen) {
+function resolveConflicts(dbcfg, xthen) {
     'use strict';
     function separate(data) {
         var irrelevant = data.filter(function (doc) {
             return !((doc.order)
                     && (doc.order.orderInfo)
-                    && (typeof(doc.order) === 'object') 
+                    && (typeof(doc.order) === 'object')
                     && (typeof(doc.order.orderInfo) === "object"));
         });
         //We are interested in order data only
         data = data.filter(function(doc) {
             return ((doc.order)
                     && (doc.order.orderInfo)
-                    && (typeof(doc.order) === 'object') 
+                    && (typeof(doc.order) === 'object')
                     && (typeof(doc.order.orderInfo) === "object"));
         }).sort(function(item1, item2) {
             if (item1.order.orderInfo.orderstatus > item2.order.orderInfo.orderstatus) {
@@ -778,22 +755,15 @@ function resolveConflicts(xthen) {
             }
         });
         return {
-            "keep": data.slice(0,1), 
-            "remove": data.slice(1), 
+            "keep": data.slice(0,1),
+            "remove": data.slice(1),
             "irrelevant": irrelevant
         };
     }
     function asyncUpdate(data, index, result, then) {
         if(index < data.length) {
-            window.$.couch.db("orders").removeDoc(data[index], {
-                success: function(data) {
-                    console.log(data);
-                    asyncUpdate(data, index + 1, result, then);
-                },
-                error: function(status) {
-                    console.log(status);
-                    asyncUpdate(data, index + 1, result, then);
-                }
+            window._deleteDB(dbcfg, data[index], function(d){
+                asyncUpdate(data, index + 1, result, then);
             });
         } else {
             then(result);
@@ -801,11 +771,9 @@ function resolveConflicts(xthen) {
     }
     function asyncMap(data, index, result, then) {
         if((data.length > 0) && (index < data[0].key.length)) {
-            get( "/orders/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], function (d, err){
-                console.log("asyncMap get+++++++++++++++++++++++");
-                console.log(d);
-                if(d){
-                    result.push(d);
+            get( "/" + dbcfg["bid"] + "/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], dbcfg["udb"], dbcfg["pdb"], function (dt, err){
+                if(dt){
+                    result.push(dt);
                 }
                 asyncMap(data, index + 1, result, then);
             });
@@ -821,23 +789,18 @@ function resolveConflicts(xthen) {
             xthen(err);
         } else {
             window.setTimeout(function () {
-                resolveConflicts(xthen);
+                resolveConflicts(dbcfg, xthen);
             }, 10000);
         }
     }
-    console.log("resolveConflicts +++++++++++++++++++++++");
-    get("/orders/_design/kc/_view/conflicts?limit=1", function (data, err){
-        console.log(data);
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/conflicts?limit=1",dbcfg["udb"], dbcfg["pdb"], function (data, err){
         if(data){
-            console.log("asyncMap++++++++++++++++++++++");
             asyncMap(data.rows, 0, [], function(results){
-                console.log(results);
                 if(results.length > 0) {
-                    console.log("asynUpdate+++++++++++++++++++++")
                     results = separate(results);
                     asyncUpdate(results.remove.concat(results.irrelevant), 0, [], function() {
                         if(results.remove.length > 0){
-                            resolveConflicts(xthen);
+                            resolveConflicts(dbcfg, xthen);
                         } else {
                             next();
                         }
@@ -851,35 +814,59 @@ function resolveConflicts(xthen) {
         }
     });
 }
-
-function scanOrders(cfg, resolve) {
+/*
+function scanOrders(dbcfg, retry_day, cfg, xthen) {
     'use strict';
+    console.log("**************************************");
+    console.log("dbname:" + dbcfg["bid"]);
+    console.log("**************************************");
     function next() {
-        if(resolve) {
-            resolveConflicts(function (){
-                window.setTimeout(function () {
-                    scanOrders(cfg);
-                }, 10000);
+        console.log("INFO: resolveConflicts");
+        resolveConflicts(dbcfg, function (e){
+            if(e){
+                console.log("resolveConflicts: ", e);
+            }
+            cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 30;
+            ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
+                if(err) {
+                    console.log("ordersBefore: ", err);
+                }
+                data = data ? data : [];
+                console.log("INFO: deleteOrders");
+                deleteOrders(dbcfg, data, function(data,error){
+                    if(error) {
+                        console.log("deleteOrders: ", error)
+                    }
+                    console.log("INFO: compact");
+                    compact(dbcfg, function (d, e){
+                        if(e){
+                            console.log("compact: ", e);
+                        }
+                        console.log("INFO: retryFailed");
+                        retryFailed(dbcfg, retry_day, cfg, function(data, err){
+                            if(err){
+                                console.log("retryFailed: ", err);
+                            }
+                            if(typeof(xthen) === 'function'){
+                              xthen();
+                            }
+                        });
+                    });                        
+                });
             });
-        } else {
-            window.setTimeout(function () {
-                scanOrders(cfg);
-            }, 10000);                
-        }
+        });
     }
     console.log("scanOrders ++++++++++++++++++");
-    get("/orders/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true", function(data, err) {
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
         console.log(data);
         if(data){
             var m = modifyOC(cfg),
                 s = submitOC(cfg);
             scanDBCounter.success++;
             window.$('#scan_db_success').html(scanDBCounter.success);
-            window.syncOC(m, s, data.rows.filter(function(item){
-                console.log("item ++++++++++++++++++++++");
-                console.log(item);
+            window.syncOC(dbcfg, m, s, data.rows.filter(function(item){
+                console.log("item ++++++++++++++++++++");
                 console.log(item.value);
-                console.log(item.value.length);
                 return item.value.length === 1;
             }).map(function (o) {
                 return o.doc;
@@ -893,6 +880,31 @@ function scanOrders(cfg, resolve) {
         }
     });
 }
+function scanDatabase(retry_day, cfg){
+  'use strict';
+  console.log("INFO: start to scan database!");
+  function asyncDb(dbs, index){
+    if(index < dbs.length){
+      scanOrders(dbs[index], retry_day, cfg, function(){
+        asyncDb(dbs, index + 1);
+      });
+    }else{
+      window.setTimeout(function(){
+        scanDatabase(retry_day, cfg);
+      }, 2000);
+    }
+  };
+  getLocal("dbcfg1", function(data, err){
+    if(data){
+        asyncDb(data, 0);
+    }else{
+        window.setTimeout(function(){
+        scanDatabase(retry_day, cfg);
+      }, 2000);
+    }
+  });
+}
+*/
 function onOrderChange(cfg, last_seq) {
     'use strict';
     if ((last_seq === undefined) || (last_seq === null)) {
@@ -908,7 +920,7 @@ function onOrderChange(cfg, last_seq) {
                             return o.doc.sync_status === 0;
                         }
                     }
-                }                
+                }
             }
             return false;
         }),
@@ -932,22 +944,36 @@ function onOrderChange(cfg, last_seq) {
     return last_seq;
 }
 
-function retryFailed(cfg, then) {
+
+function retryFailed(dbcfg, retry_day, cfg, then) {
     'use strict';
-    window.$.getJSON("/orders/_design/kc/_view/status?startkey=[2,3]&endkey=[9999,100]&include_docs=true&conflicts=true", function(result){
+    var today = new Date();
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate()-retry_day);
+    today = encodeURI(getDate(today));
+    yesterday = encodeURI(getDate(yesterday));
+    //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
         var tmp = result.rows.filter(function (o) {
             if (!o.doc.deleted) {
                 if (o.doc.order) {
                     if (o.doc.order.orderInfo) {
-                        return o.doc.order.orderInfo.orderstatus >= 4;
+                        if(o.doc.sync_status >= 2){
+                            if(o.doc.order.orderInfo.orderstatus >= 3){
+                                //filter out 1002 "该订单状态还不能直接跳级修改"
+                                return o.doc.oc_msg.status != 500;
+                                //return true;
+                            }
+                        }
                     }
-                }                
+                }
             }
             return false;
         }),
         m = window.modifyOC(cfg),
         s = window.submitOC(cfg); 
-        window.syncOC(m, s, tmp.filter(function(item){
+        console.log("retryFailed+++++++++++++++++++++++++++++++");
+        window.syncOC(dbcfg, m, s, tmp.filter(function(item){
             return item.value.length === 1;
         }).map(function (o) {
             return o.doc;
