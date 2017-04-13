@@ -79,18 +79,20 @@ var demo = new Vue({
       };
       console.log("start + createStoreDB +++++++++++");
       console.log(stCfg);
-      createStoreDB(stCfg,function(d){
-        console.log("createStoreDB ++++++++++++++++++");
-        console.log(d);
-        addCouchdbUser( _this.bid, _this.pdb, [], function(_d){
-          var names = [];
-          names.push(_this.bid);
-          addUserForDB(_this.bid, names, [], function(__d){
-            console.log(__d);
-            addReplication(stCfg, function(_d){
-              _this.addDisabled = false;
-              console.log("addReplication ++++++++++++++++++=");
-              console.log(_d);
+      addStoreLCDB(function(){
+        createStoreDB(stCfg,function(d){
+          console.log("createStoreDB ++++++++++++++++++");
+          console.log(d);
+          addCouchdbUser( _this.bid, _this.pdb, [], function(_d){
+            var names = [];
+            names.push(_this.bid);
+            addUserForDB(_this.bid, names, [], function(__d){
+              console.log(__d);
+              addReplication(stCfg, function(_d){
+                _this.addDisabled = false;
+                console.log("addReplication ++++++++++++++++++=");
+                console.log(_d);
+              });
             });
           });
         });

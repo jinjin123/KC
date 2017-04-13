@@ -144,19 +144,34 @@ function delUserForDB(dbname, then){
   };
   ajaxCfg("/" + dbname + "/_security", "PUT", CouchdbUser(), CouchdbPassWD(), d, then);
 }
-function isExsitDBuser(dbname, then){
+function isExsitDBuser(dbname, username, then){
   http://localhost:5984/b726/_security
   ajaxCfg("/" + dbname + "/_security", "GET", CouchdbUser(), CouchdbPassWD(), null, function(dt){
     if(dt.status == 200){
       dt = JSON.parse(dt.responseText);
-      var names = dt.members.names;
+
+      var names = [];
+      if(dt.members){
+        names = dt.members.names;
+      }
       var exsit = false;
       names.forEach(function(itm){
-        if(itm == dbname){
+        if(itm == username){
           exsit = true;
           return
         }
       });
+      if(exsit == false){
+        if(dt.admins){
+          names = dt.admins.names;
+          names.forEach(function(itm){
+            if(itm == username){
+              exsit = true;
+              return
+            }
+          });
+        }
+      }
       if(exsit){
           then(true);
       }else{
@@ -241,7 +256,9 @@ function addDBcfgUser(db, then){
         { bid: db.bid, uoc: db.uoc, poc: db.poc, udb: db.bid, pdb: db.pdb }
       );
       setLocal("dbcfg1", dbcfg, function(_d){
-        if(_d.status == 200 || _d.status == 202){
+        console.log("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
+        console.log(_d);
+        if(_d.status == 200 || _d.status == 202 || _d.status == 201){
           then(true, dbcfg);
         }else{
           then(false);
@@ -273,7 +290,7 @@ function delDBcfgUser(db, then){
     });
     if(isExsit){
       setLocal("dbcfg1", dbcfg, function(_d){
-        if(_d.status == 200 || _d.status == 202){
+        if(_d.status == 200 || _d.status == 202 || _d.status == 201){
           then(true);
         }else{
           then(false);
@@ -374,7 +391,7 @@ function _delReplication(stcfg, flag, then){
   ajaxCfg("/_replicator/" + id, "GET", CouchdbUser(), CouchdbPassWD(), null, function(data, err){
     if(data.status == 200){
       data = JSON.parse(data.responseText);
-     ajaxCfg("/_replicator/" + data._id + "?rev=" + data._rev, "DELETE", CouchdbUser(), CouchdbPassWD(), null, function(data, err){
+      ajaxCfg("/_replicator/" + data._id + "?rev=" + data._rev, "DELETE", CouchdbUser(), CouchdbPassWD(), null, function(data, err){
         //console.log("_addReplication delReplication +++++++++++++++++");
         //console.log(_dt);
         ajaxCfg("/_replicator", "POST", CouchdbUser(), CouchdbPassWD(), data, function(dt, err){
@@ -414,7 +431,7 @@ function checkDBCfg(dbcfg, then){
       }else{
         msg += dbcfg["bid"] + " couchdb 用户不存在！\n";
       }
-      isExsitDBuser(dbcfg["bid"], function(d){
+      isExsitDBuser(dbcfg["bid"], dbcfg["bid"], function(d){
         if(d == true){
           msg += dbcfg["bid"] + " 数据库用户已经创建！\n";
         }else{
@@ -440,7 +457,7 @@ function checkStCfg(stcfg, then){
       }else{
         msg += stcfg["bid"] + " couchdb 用户不存在！\n";
       }
-      isExsitDBuser(stcfg["bid"], function(d){
+      isExsitDBuser(stcfg["bid"], stcfg["bid"], function(d){
         if(d == true){
           msg += stcfg["bid"] + " 数据库用户已经创建！\n";
         }else{
@@ -468,5 +485,101 @@ function checkStCfg(stcfg, then){
         });
       });
     });
+  });
+}
+function addAdminForDB(dbname, names, then){
+  var d = {
+    "admins": {
+        "names": names,
+        "roles": [
+            "admins"
+        ]
+    }
+  };
+  ajaxCfg("/" + dbname + "/_security", "PUT", CouchdbUser(), CouchdbPassWD(), d, then);
+}
+function  createDBLC(dbname, then){
+  ajaxCfg("/" + dbname, "PUT", CouchdbUser(), CouchdbPassWD(), null, function(d){
+    if(d.status == 202 || d.status == 201 || d.status == 500){
+      then(true);
+    }else{
+      then(false);
+    }
+  });
+}
+
+function add_usersSVRDB(then){
+  isExsitDB("_users", function(d){
+    if(d == true){
+      isExsitDBuser("_users", CouchdbUser(),function(d){
+        if(d == true){
+          then(true);
+        }else{
+          var names = [CouchdbUser()];
+          addAdminForDB("_users", names, function(d){
+            if(d.status == 202 || d.status == 201 || d.status == 500){
+              then(true);
+            }else{
+              alert("_users 添加用户失败");
+            }
+          });
+        }
+      });
+    }else{
+      createDBLC("_users", function(d){
+        if(d == true){
+          var names = [CouchdbUser()];
+          addAdminForDB("_users", names, function(d){
+            if(d.status == 202 || d.status == 201 || d.status == 500){
+              then(true);
+            }else{
+              alert("_users 添加用户失败");
+            }
+          });
+        }else{
+          alert("添加 _users 数据库失败！");
+        }
+      })
+    }
+  });
+}
+
+function addStoreLCDB(then){
+  isExsitDB("_users", function(d){
+    if(d == false){
+      createDBLC("_users", function(d){
+        if(d == true){
+          isExsitDB("_replicator", function(d){
+            if(d == false){
+              createDBLC("_replicator", function(d){
+                if(d == true){
+                  then(true);
+                }else{
+                  alert("添加 _replicator 失败！");
+                }
+              });
+            }else{
+              then(true);
+            }
+          });
+        }else{
+          alert("添加 _users 数据库失败！");
+        }
+      });
+    }else{
+      isExsitDB("_replicator", function(d){
+        if(d == false){
+          createDBLC("_replicator", function(d){
+            if(d == true){
+              then(true);
+            }else{
+              alert("添加 _replicator 失败！");
+            }
+          });
+        }else{
+          then(true);
+        }
+      });
+    }
   });
 }

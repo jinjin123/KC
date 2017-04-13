@@ -193,21 +193,6 @@ Vue.component('demo-grid', {
      }
   }
 })
-Vue.component('editCfg', {
-  template: '#editCfg-template',
-  props: {
-    bid: String,
-    uoc: String,
-    poc: String,
-    udb: String,
-    pdb: String
-  },
-  methods: {
-    save: function(){
-      
-    }
-  }
-});
 function addUser(_this, then){
   console.log("addUser ++++++++++++++++");
   addCouchdbUser(_this.bid, _this.pdb, [], function(dt1){
@@ -237,13 +222,6 @@ var demo = new Vue({
     searchQuery: '',
     gridColumns: ['bid', 'uoc', 'poc', 'udb', 'pdb'],
     gridData: [
-    /*
-      { bid: 'Jackie Chan', uoc: 7000, poc:"ttt", udb: "testdb", pdb: "testdb" },
-      { bid: 'Chuck Norris', uoc: Infinity, poc:"ttt", udb: "testdb", pdb: "testdb" },
-      { bid: 'Bruce Lee', uoc: 9000, poc:"ttt", udb: "testdb", pdb: "testdb" },
-      { bid: 'Jackie Chan', uoc: 7000, poc:"ttt", udb: "testdb", pdb: "testdb" },
-      { bid: 'Jet Li', uoc: 8000, poc:"ttt", udb: "testdb", pdb: "testdb" }
-      */
     ],
     bid:"",
     uoc:"",
@@ -271,34 +249,36 @@ var demo = new Vue({
       var _this = this;
       _this.pdb = _this.poc;
       _this.addDisabled = true;
-      isExsitDB(_this.bid, function(s){
-        if(s == true){
-          alert("database " + _this.bid + " is exsit!");
-        }else{
-          createDB(_this.bid, function(dt){
-            console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
-            console.log(dt);
-            if(dt.status == 200 || dt.status == 201 || dt.status == 202){
-              console.log("INFO: start add user!");
-              addUser(_this, function(d){
-                console.log(d);
-                if(d == true){
-                  addDBcfgUser(_this, function(dt, dbcfg){
-                    console.log(dt);
+      add_usersSVRDB(function(dd){
+        isExsitDB(_this.bid, function(s){
+          if(s == true){
+            alert("database " + _this.bid + " is exsit!");
+          }else{
+            createDB(_this.bid, function(dt){
+              console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
+              console.log(dt);
+              if(dt.status == 200 || dt.status == 201 || dt.status == 202){
+                console.log("INFO: start add user!");
+                addUser(_this, function(d){
+                  console.log(d);
+                  if(d == true){
+                    addDBcfgUser(_this, function(dt, dbcfg){
+                      console.log(dt);
+                      _this.addDisabled = false;
+                      if(dt == true){
+                        _this.gridData = dbcfg;
+                      }
+                    });
+                  }else{
                     _this.addDisabled = false;
-                    if(dt == true){
-                      _this.gridData = dbcfg;
-                    }
-                  });
-                }else{
-                  _this.addDisabled = false;
-                }
-              });
-            }else{
-              _this.addDisabled = false;
-            }
-          });
-        }
+                  }
+                });
+              }else{
+                _this.addDisabled = false;
+              }
+            });
+          }
+        });
       });
     }
   }
