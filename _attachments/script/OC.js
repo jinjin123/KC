@@ -36,7 +36,8 @@ function submitOCN(url, user, password, order, then){
   console.log("url:" + url);
   console.log("user:" + user + " password:" + password);
   
-  var data = O2N(order);
+  var data = order.data;
+  data.state = getNameByNum(data.state);
   var options = {
     contentType : 'application/json',
     url:url,
@@ -57,7 +58,7 @@ function modifyOCN(url, user, password, order, then){
   console.log("modifyOCN ++++++++++++++++++++++++++++++++++++");
   console.log("url:" + url);
   console.log("user:" + user + " password:" + password);
-  var data = getUpdateObj(order);
+  var data = getUpdateObjNew(order.data);
   url = checkUrl(url) + data.data.id + "?_format=api_json";
   var options = {
     contentType : 'application/vnd.api+json',
@@ -80,6 +81,7 @@ function _updateDB(dbcfg, order, then){
   var url = '/' + dbcfg['bid'] + '/' + order._id + '/';
   order.modifier = 'kc2';
   order.timestamp = getOrderTimestamp(order);
+  order.data.state = getNumByName(order.data.state);
   var options = {
     contentType : 'application/json',
     url: url,
@@ -258,7 +260,7 @@ function multipleAjax(retry_day, cfg){
     console.log("**************************************");
     console.log("scanOrders ++++++++++++++++++");
     setScanning(dbcfg, true);
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
        setScanning(dbcfg, false);
         if(data){
           var m = modifyOC(cfg),

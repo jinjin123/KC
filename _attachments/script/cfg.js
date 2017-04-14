@@ -326,7 +326,7 @@ function _addReplication(stcfg, flag, then){
       data.target = target;
       data.continuous = true;
       data.filter = "kc/store";
-      data.query_params = {"storeid":stcfg["storeid"]};
+      data.query_params = {"field_de_store_id":stcfg["storeid"]};
       ajaxCfg("/_replicator", "POST", CouchdbUser(), CouchdbPassWD(), data, function(dt, err){
         then(dt, err);
       });

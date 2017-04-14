@@ -75,12 +75,14 @@ Vue.component('demo-grid', {
       this.sortKey = key
       this.sortOrders[key] = this.sortOrders[key] * -1
     },
-    edit: function(){
+    edit: function(idx){
       var _this = this;
       if(this.disabled.uoc == true){
         this.saveDisabled = false;
+        demo.setQuery(_this.filteredData[idx].bid);
       }else{
         this.saveDisabled = true;
+        demo.setQueryBack();
       }
       this.disabled = {
         bid: true,
@@ -92,6 +94,7 @@ Vue.component('demo-grid', {
     },
     save: function(idx){
       this.saveDisabled = true;
+      demo.setQueryBack();
       this.disabled = {
         bid: true,
         uoc: true, 
@@ -155,9 +158,6 @@ Vue.component('demo-grid', {
       var _this = this;
       console.log(this.filteredData[idx].bid);
       deleteDB(_this.filteredData[idx].bid, function(d){
-        console.log("deleteDB +++++++++++++++++++++++++++");
-        console.log(d);
-        console.log(d.status);
         if(d.status == 202 || d.status == 404 || d.status == 200 || d.status == 201 || d.status == 500){
           delCouchdbUser(_this.filteredData[idx].bid, function(dt){
             console.log(dt);
@@ -194,15 +194,15 @@ Vue.component('demo-grid', {
   }
 })
 function addUser(_this, then){
-  console.log("addUser ++++++++++++++++");
+  console.log("LogInfo: addUser");
   addCouchdbUser(_this.bid, _this.pdb, [], function(dt1){
-    console.log("addCouchdbUser ++++++++++++++++++++++++");
+    console.log("LogInfo: addCouchdbUser");
     console.log(dt1);
     if(dt1.status == 200 || dt1.status == 202 || dt1.status == 201 || dt1.status == 409){
       var names = [];
       names.push(_this.bid);
       addUserForDB(_this.bid, names, [], function(dt2){
-        console.log("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
+        console.log("log info: addUserForDB");
         console.log(dt2);
         if(dt2.status == 200 || dt2.status == 202 || dt2.status == 201 || dt2.status == 500){
           then(true);
@@ -220,6 +220,7 @@ var demo = new Vue({
   el: '#demo',
   data: {
     searchQuery: '',
+    historyQuery: '',
     gridColumns: ['bid', 'uoc', 'poc', 'udb', 'pdb'],
     gridData: [
     ],
@@ -237,11 +238,7 @@ var demo = new Vue({
     fetchDBCfg: function(){
       var _this = this;
       getLocal("dbcfg1", function(d){
-        console.log(d);
         var dd = JSON.parse(d.responseText);
-        console.log("88888888888888888888888888888888888888888888");
-        console.log(dd);
-        console.log(dd.value);
         _this.gridData = dd.value;
       });
     },
@@ -255,8 +252,6 @@ var demo = new Vue({
             alert("database " + _this.bid + " is exsit!");
           }else{
             createDB(_this.bid, function(dt){
-              console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
-              console.log(dt);
               if(dt.status == 200 || dt.status == 201 || dt.status == 202){
                 console.log("INFO: start add user!");
                 addUser(_this, function(d){
@@ -280,6 +275,14 @@ var demo = new Vue({
           }
         });
       });
+    },
+    setQuery: function(str){
+      this.historyQuery = this.searchQuery;
+      this.searchQuery = str;
+    },
+    setQueryBack: function(){
+      this.searchQuery = this.historyQuery;
+      this.historyQuery = "";
     }
   }
 })

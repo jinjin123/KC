@@ -9,31 +9,25 @@
  * 
  * monitoring
  */
-function getDate(d, fmt){
+function getTime(d, fmt){
     d = d ? d : (new Date());
-    fmt = fmt ? fmt : 'YYYYMMDDHHmmss';
-    return moment(d).format(fmt);
+    return Math.round(d.getTime()/1000);
 }
 function getOrderTimestamp(doc){
-    function convertDate(d) {
-        if(typeof(d) === 'string') {
-            var m = d.match(/([0-9]+)-([0-9]+)-([0-9]+) ([0-9]+):([0-9]+):([0-9]+)/);
-            if(m){
-                return m[1] + m[2] + m[3] + m[4] + m[5] + m[6];    
-            }            
-        }
-    }
-    if(doc && doc.order && doc.order.orderInfo){
-        var info = doc.order.orderInfo;
-        var fields = ['addtime', 'booktime', 'paytime', 'returntime', 'canceltime', 'mealstime', 'deliverytime', 'receivetime'];
-        for(var i in fields) {
-            var ret = convertDate(info[fields[i]]); 
-            if(ret){
-                return ret;
-            }   
-        }
-        return doc.timestamp ? doc.timestamp : getDate();
-    } 
+    if(doc && doc.data && doc.data.order_items){
+        if(doc.timestamp)
+          return doc.timestamp;
+          //var info = doc.data.order_items;
+          var info = doc.data;
+          var fields = ['placed', 'completed', 'field_canceled', 'field_delivering_time', 'field_delivered', 'field_payment_received', 'field_returned'];
+          for(var i in fields) {
+              var ret = info[fields[i]]; 
+              if(ret){
+                  return ret;
+              }   
+          }
+          return doc.timestamp ? doc.timestamp : getTime();
+      } 
 } 
 function isArray(o){
     return Object.prototype.toString.call(o) == '[object Array]';
@@ -264,67 +258,67 @@ function run(retry_day, then){
     });
 }
 function getAllURLs(){
-    var result = [];
-    window.$('.url').each(function(i, item){
-        result.push({
-            type:"anchor",
-            name: item.name, 
-            href: item.href,
-            function:null
-        });
-    });
-    return result;
+  var result = [];
+  window.$('.url').each(function(i, item){
+      result.push({
+          type:"anchor",
+          name: item.name, 
+          href: item.href,
+          function:null
+      });
+  });
+  return result;
 }
 function queryPOS(cfg){
     var mq = topic(cfg)
 }
 function receivePOS(cfg, on_req, on_error){
-    var pending = {};
-    var mq = topic(cfg, function (x){
-        mq.close();
-        if(typeof(on_error) === 'function') {
-            on_error.call(mq, x);
-        } else  {
-            window.$('#stomp_info').html(x);
-            console.log(x);
-        }
-    }, function(err){
-        window.$('#stomp_info').html(err);
-        console.log(err);        
-    });
-    function hook_msg(key, id){
-        mq.receive(function(msg){
-            var tmp = {"msg":JSON.parse(msg.body), destination:msg.headers.destination};
-            if(tmp.msg.type === 'request') {
-                if(typeof(on_req) === 'function') {
-                    if(tmp.msg.to === cfg['kc-name'] || tmp.msg.to === 'all'){
-                        if(tmp.msg.type === 'request'){
-                            on_req.call(mq, tmp);
-                        }
-                    }
-                } else {
-                    console.log(tmp);
-                }                
-            } else if (tmp.msg.type === 'response') {
-                if(typeof(pending[tmp.msg.id]) === 'function'){
-                    var fun = pending[tmp.msg.id];
-                    if(!tmp.msg.more){
-                        delete pending[tmp.msg.id];
-                    }
-                    fun.call(mq, tmp);
-                }
-            }
-        }, key, id);
+  var pending = {};
+  var mq = topic(cfg, function (x){
+    mq.close();
+    if(typeof(on_error) === 'function') {
+        on_error.call(mq, x);
+    } else  {
+      window.$('#stomp_info').html(x);
+      console.log(x);
     }
-    hook_msg([cfg['kc-name'] + '.*.*','all.*.*']);
-    var send = mq.send;
-    mq.send = function (to, evt, msg, on_reply) {
-        if(typeof(on_reply) === 'function' && msg.id) {
-            pending[msg.id] = on_reply;
-        }
-        return send(to + '.' + cfg['kc-name'] + '.' + evt, msg);
-    }
-    return mq;
+  }, function(err){
+    window.$('#stomp_info').html(err);
+    console.log(err);        
+  });
+  function hook_msg(key, id){
+    mq.receive(function(msg){
+      var tmp = {"msg":JSON.parse(msg.body), destination:msg.headers.destination};
+      if(tmp.msg.type === 'request') {
+          if(typeof(on_req) === 'function') {
+              if(tmp.msg.to === cfg['kc-name'] || tmp.msg.to === 'all'){
+                  if(tmp.msg.type === 'request'){
+                      on_req.call(mq, tmp);
+                  }
+              }
+          } else {
+              console.log(tmp);
+          }                
+      } else if (tmp.msg.type === 'response') {
+          if(typeof(pending[tmp.msg.id]) === 'function'){
+              var fun = pending[tmp.msg.id];
+              if(!tmp.msg.more){
+                  delete pending[tmp.msg.id];
+              }
+              fun.call(mq, tmp);
+          }
+      }
+    }, key, id);
+  }
+  hook_msg([cfg['kc-name'] + '.*.*','all.*.*']);
+  var send = mq.send;
+  mq.send = function (to, evt, msg, on_reply) {
+      if(typeof(on_reply) === 'function' && msg.id) {
+          pending[msg.id] = on_reply;
+      }
+      return send(to + '.' + cfg['kc-name'] + '.' + evt, msg);
+  }
+  return mq;
 }
 
 function receiveOC(cfg) {
@@ -383,25 +377,25 @@ function loadConfig(fun) {
         return x;
     }
     function render(x, env, tags) {
-        return walk(x, {
-            "tags": tags,
-            "env": env 
-        }, function(x, acc){
-            if(!acc.tags){
-                return window.Mustache.render(x, acc.env);
-            } else {
-                var buffer="", ii, a = window.Mustache.parse(x, acc.tags);
-                for(ii in a) {
-                    var obj = a[ii];
-                    if(obj[0] === "name") {
-                        buffer += env[obj[1]];
-                    } else {
-                        buffer += obj[1];
-                    }
-                }
-                return buffer;
+      return walk(x, {
+        "tags": tags,
+        "env": env 
+      }, function(x, acc){
+          if(!acc.tags){
+            return window.Mustache.render(x, acc.env);
+          } else {
+            var buffer="", ii, a = window.Mustache.parse(x, acc.tags);
+            for(ii in a) {
+              var obj = a[ii];
+              if(obj[0] === "name") {
+                  buffer += env[obj[1]];
+              } else {
+                  buffer += obj[1];
+              }
             }
-        });
+            return buffer;
+          }
+      });
     }
 
     function collect(x, result) {
@@ -479,8 +473,8 @@ function deleteOrders(dbcfg, data, then){
 }
 function ordersBefore(dbcfg, x, fun) {
     var now = new Date();
-    now.setDate(now.getDate()-x);
-    now = getDate(now);
+    now.setDate(now.getDate()- x);
+    now = getTime(now);
     return orders(dbcfg, 'timestamp?endkey=' + encodeURI(now), fun);
 }
 function getMQConfig(cfg){
@@ -517,11 +511,7 @@ function queryOC(cfg) {
 function submitOC(cfg) {
     'use strict';
     return function (user, password, order, fun) {
-        if (!order.orderInfo) {
-            order = order.order;
-        }
-        //return post(cfg['oc-submitUrl'], order, fun);
-        return submitOCN(cfg['oc-submitUrl'], user, password, order, fun);
+      return submitOCN(cfg['oc-submitUrl'], user, password, order, fun);
     };
 }
 function modifyOC(cfg) {
@@ -559,7 +549,7 @@ function updateOrders(dbcfg, order, then) {
 }
 function sync1Order(dbcfg, od, m, s, xthen) {
     console.log("sync1Order++++++++++++++++++++++++");
-    if(od.order.submited == true){
+    if(od.data.submited == true){
       m(dbcfg["uoc"], dbcfg["poc"], od, function (data, err) {
         console.log(data);
         if (data) {
@@ -625,7 +615,7 @@ function sync1Order(dbcfg, od, m, s, xthen) {
         }
       });
     }else{
-      od.order.BeforSubmittingTime = getDate();
+      od.BeforSubmittingTime = getTime();
       s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
         console.log("++++++++++++++++++++++++++submit++++++++++++++++++++++++++++");
         if(data1){
@@ -634,8 +624,8 @@ function sync1Order(dbcfg, od, m, s, xthen) {
             data1.responseJSON = null;
             data1.responseText = null;
             od.oc_msg = data1;
-            od.order.AfterSubmittingTime = getDate();
-            od.order.submited = true;
+            od.AfterSubmittingTime = getTime();
+            od.data.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);                               
           }else if(data1.status == 409 || data1.status == 500){
@@ -645,8 +635,8 @@ function sync1Order(dbcfg, od, m, s, xthen) {
             data1.responseJSON = null;
             data1.responseText = null;
             od.oc_msg = data1;
-            od.order.AfterSubmittingTime = getDate();
-            od.order.submited = true;
+            od.AfterSubmittingTime = getTime();
+            od.data.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);
           }else{
@@ -669,12 +659,12 @@ function sync1Order(dbcfg, od, m, s, xthen) {
     }
 }
 function getStoreName(order){
-    if(order){
-        if(order.orderInfo){
-            return order.orderInfo.storename;
-        }
-    }
-    console.log(order);
+  if(order){
+      if(order.data){
+          return order.data.field_de_store_id;
+      }
+  }
+  console.log(order);
 }
 
 
@@ -729,21 +719,21 @@ function resolveConflicts(dbcfg, xthen) {
     'use strict';
     function separate(data) {
         var irrelevant = data.filter(function (doc) {
-            return !((doc.order)
-                    && (doc.order.orderInfo)
-                    && (typeof(doc.order) === 'object')
-                    && (typeof(doc.order.orderInfo) === "object"));
+            return !((doc.data)
+                    && (doc.order.order_items)
+                    && (typeof(doc.data) === 'object'));
+                    //&& (typeof(doc.data.order_items) === "object"));
         });
         //We are interested in order data only
         data = data.filter(function(doc) {
-            return ((doc.order)
-                    && (doc.order.orderInfo)
-                    && (typeof(doc.order) === 'object')
-                    && (typeof(doc.order.orderInfo) === "object"));
+            return ((doc.data)
+                    && (doc.data.order_items)
+                    && (typeof(doc.data) === 'object'));
+                    //&& (typeof(doc.data.order_items) === "object"));
         }).sort(function(item1, item2) {
-            if (item1.order.orderInfo.orderstatus > item2.order.orderInfo.orderstatus) {
+            if (item1.data.state > item2.data.state) {
                 return -1;
-            } else if (item1.order.orderInfo.orderstatus < item2.order.orderInfo.orderstatus) {
+            } else if (item1.data.state < item2.data.state) {
                 return 1;
             } else {
                 if (item1.sync_status > item2.sync_status) {
@@ -814,97 +804,6 @@ function resolveConflicts(dbcfg, xthen) {
         }
     });
 }
-/*
-function scanOrders(dbcfg, retry_day, cfg, xthen) {
-    'use strict';
-    console.log("**************************************");
-    console.log("dbname:" + dbcfg["bid"]);
-    console.log("**************************************");
-    function next() {
-        console.log("INFO: resolveConflicts");
-        resolveConflicts(dbcfg, function (e){
-            if(e){
-                console.log("resolveConflicts: ", e);
-            }
-            cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 30;
-            ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
-                if(err) {
-                    console.log("ordersBefore: ", err);
-                }
-                data = data ? data : [];
-                console.log("INFO: deleteOrders");
-                deleteOrders(dbcfg, data, function(data,error){
-                    if(error) {
-                        console.log("deleteOrders: ", error)
-                    }
-                    console.log("INFO: compact");
-                    compact(dbcfg, function (d, e){
-                        if(e){
-                            console.log("compact: ", e);
-                        }
-                        console.log("INFO: retryFailed");
-                        retryFailed(dbcfg, retry_day, cfg, function(data, err){
-                            if(err){
-                                console.log("retryFailed: ", err);
-                            }
-                            if(typeof(xthen) === 'function'){
-                              xthen();
-                            }
-                        });
-                    });                        
-                });
-            });
-        });
-    }
-    console.log("scanOrders ++++++++++++++++++");
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
-        console.log(data);
-        if(data){
-            var m = modifyOC(cfg),
-                s = submitOC(cfg);
-            scanDBCounter.success++;
-            window.$('#scan_db_success').html(scanDBCounter.success);
-            window.syncOC(dbcfg, m, s, data.rows.filter(function(item){
-                console.log("item ++++++++++++++++++++");
-                console.log(item.value);
-                return item.value.length === 1;
-            }).map(function (o) {
-                return o.doc;
-            }), 0, function () {
-                next();
-            });
-        } else {
-            scanDBCounter.fail++;
-            window.$('#scan_db_fail').html(scanDBCounter.fail);
-            next();
-        }
-    });
-}
-function scanDatabase(retry_day, cfg){
-  'use strict';
-  console.log("INFO: start to scan database!");
-  function asyncDb(dbs, index){
-    if(index < dbs.length){
-      scanOrders(dbs[index], retry_day, cfg, function(){
-        asyncDb(dbs, index + 1);
-      });
-    }else{
-      window.setTimeout(function(){
-        scanDatabase(retry_day, cfg);
-      }, 2000);
-    }
-  };
-  getLocal("dbcfg1", function(data, err){
-    if(data){
-        asyncDb(data, 0);
-    }else{
-        window.setTimeout(function(){
-        scanDatabase(retry_day, cfg);
-      }, 2000);
-    }
-  });
-}
-*/
 function onOrderChange(cfg, last_seq) {
     'use strict';
     if ((last_seq === undefined) || (last_seq === null)) {
@@ -914,12 +813,12 @@ function onOrderChange(cfg, last_seq) {
     window.$.getJSON("/orders/_changes?feed=longpoll&since="+last_seq+"&include_docs=true&conflicts=true", function (result) {
         var tmp = result.results.filter(function (o) {
             if (!o.doc.deleted) {
-                if (o.doc.order) {
-                    if (o.doc.order.orderInfo) {
-                        if (o.doc.order.orderInfo.orderstatus >= 4) {
+                if (o.doc.data) {
+                    //if (o.doc.data.orderInfo) {
+                        if (o.doc.data.state >= 7) {
                             return o.doc.sync_status === 0;
                         }
-                    }
+                    //}
                 }
             }
             return false;
@@ -946,45 +845,45 @@ function onOrderChange(cfg, last_seq) {
 
 
 function retryFailed(dbcfg, retry_day, cfg, then) {
-    'use strict';
-    var today = new Date();
-    var yesterday = new Date();
-    yesterday.setDate(yesterday.getDate()-retry_day);
-    today = encodeURI(getDate(today));
-    yesterday = encodeURI(getDate(yesterday));
-    //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
-        var tmp = result.rows.filter(function (o) {
-            if (!o.doc.deleted) {
-                if (o.doc.order) {
-                    if (o.doc.order.orderInfo) {
-                        if(o.doc.sync_status >= 2){
-                            if(o.doc.order.orderInfo.orderstatus >= 3){
-                                //filter out 1002 "该订单状态还不能直接跳级修改"
-                                return o.doc.oc_msg.status != 500;
-                                //return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }),
-        m = window.modifyOC(cfg),
-        s = window.submitOC(cfg); 
-        console.log("retryFailed+++++++++++++++++++++++++++++++");
-        window.syncOC(dbcfg, m, s, tmp.filter(function(item){
-            return item.value.length === 1;
-        }).map(function (o) {
-            return o.doc;
-        }), 0, function () {
-            if(typeof(then) === "function") {
-                then("success");
-            }
-        });
-    }).fail(function(xhr, err){
-        if(typeof(then) === "function") {
-            then(null, err);
-        }
-    })
+  'use strict';
+  var today = new Date();
+  var yesterday = new Date();
+  yesterday.setDate(yesterday.getDate()-retry_day);
+  today = encodeURI(getTime(today));
+  yesterday = encodeURI(getTime(yesterday));
+  //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
+  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
+      var tmp = result.rows.filter(function (o) {
+          if (!o.doc.deleted) {
+              if (o.doc.data) {
+                  if (o.doc.data) {
+                      if(o.doc.sync_status >= 2){
+                          if(o.doc.data.state >= 3){
+                              //filter out 1002 "该订单状态还不能直接跳级修改"
+                              return o.doc.oc_msg.status != 500;
+                              //return true;
+                          }
+                      }
+                  }
+              }
+          }
+          return false;
+      }),
+      m = window.modifyOC(cfg),
+      s = window.submitOC(cfg); 
+      console.log("retryFailed+++++++++++++++++++++++++++++++");
+      window.syncOC(dbcfg, m, s, tmp.filter(function(item){
+          return item.value.length === 1;
+      }).map(function (o) {
+          return o.doc;
+      }), 0, function () {
+          if(typeof(then) === "function") {
+              then("success");
+          }
+      });
+  }).fail(function(xhr, err){
+      if(typeof(then) === "function") {
+          then(null, err);
+      }
+  })
 }
