@@ -150,6 +150,8 @@ function multipleAjax(retry_day, cfg){
   }
   function scanBusiness(){
     getLocal("dbcfg1", function(data, err){
+      console.log("INFO: scanBusiness ***************");
+      console.log(data);
       if(data){
         addBusiness(data);
       }

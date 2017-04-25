@@ -549,7 +549,7 @@ function updateOrders(dbcfg, order, then) {
 }
 function sync1Order(dbcfg, od, m, s, xthen) {
     console.log("sync1Order++++++++++++++++++++++++");
-    if(od.data.submited == true){
+    if(od.submited == true){
       m(dbcfg["uoc"], dbcfg["poc"], od, function (data, err) {
         console.log(data);
         if (data) {
@@ -580,6 +580,11 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                           od.order.submited = true;
                           //window.updateOrdersSubmited(dbcfg, od, xthen);
                           window._updateDB(dbcfg, od, xthen);
+                        }else if(data1.status == 500){
+                            data1.responseText = null;
+                            od.sync_status = 3;  //success
+                            od.oc_msg = data1;
+                            window._updateDB(dbcfg, od, xthen);
                         } else {
                             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
                             //unknown error code has return data1
@@ -628,7 +633,7 @@ function sync1Order(dbcfg, od, m, s, xthen) {
             od.data.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);                               
-          }else if(data1.status == 409 || data1.status == 500){
+          }else if(data1.status == 409){
             console.log("else 00000000000000000000000000000000000000");
             console.log(od);
             od.sync_status = 1;
@@ -636,10 +641,15 @@ function sync1Order(dbcfg, od, m, s, xthen) {
             data1.responseText = null;
             od.oc_msg = data1;
             od.AfterSubmittingTime = getTime();
-            od.data.submited = true;
+            od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);
-          }else{
+          }else if(data1.status == 500){
+                data1.responseText = null;
+                od.sync_status = 3;  //success
+                od.oc_msg = data1;
+                window._updateDB(dbcfg, od, xthen);
+            }else{
             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
             //unknown error code has return data1
             if(od.sync_status == 200){
@@ -849,20 +859,25 @@ function retryFailed(dbcfg, retry_day, cfg, then) {
   var today = new Date();
   var yesterday = new Date();
   yesterday.setDate(yesterday.getDate()-retry_day);
-  today = encodeURI(getTime(today));
-  yesterday = encodeURI(getTime(yesterday));
+  var yYMD = yesterday.getFullYear() * 10000 + (yesterday.getMonth() * 100 + yesterday.getDate());
+  var yHMS = yesterday.getHours() * 10000 +  yesterday.getMinutes() * 100 + yesterday.getSeconds();
+  var tYMD = today.getFullYear() * 10000 + (today.getMonth() * 100 + today.getDate())
+  var tHMS = today.getHours() * 10000 +  today.getMinutes() * 100 + today.getSeconds();
+  //today = encodeURI(getTime(today));
+  //yesterday = encodeURI(getTime(yesterday));
+
   //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
-  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
+  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[2,2,"+yHMS+","+yHMS+"]&endkey=[9999,100,"+tYMD+","+tHMS+"]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
       var tmp = result.rows.filter(function (o) {
           if (!o.doc.deleted) {
               if (o.doc.data) {
                   if (o.doc.data) {
                       if(o.doc.sync_status >= 2){
-                          if(o.doc.data.state >= 3){
+                          //if(o.doc.data.state >= 3){
                               //filter out 1002 "该订单状态还不能直接跳级修改"
-                              return o.doc.oc_msg.status != 500;
+                              return o.doc.oc_msg.status != 409;
                               //return true;
-                          }
+                          //}
                       }
                   }
               }

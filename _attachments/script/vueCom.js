@@ -275,6 +275,7 @@ var demo = new Vue({
           }
         });
       });
+      //addcodeAdmin();
     },
     setQuery: function(str){
       this.historyQuery = this.searchQuery;

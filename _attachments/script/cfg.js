@@ -507,7 +507,27 @@ function  createDBLC(dbname, then){
     }
   });
 }
-
+function addcodeAdmin(){
+  isExsitDB("code", function(d){
+    if(d == true){
+      isExsitDBuser("code", CouchdbUser(),function(d){
+        if(d == true){
+          //then(true);
+        }else{
+          var names = [CouchdbUser()];
+          addAdminForDB("code", names, function(d){
+            if(d.status == 202 || d.status == 201 || d.status == 500){
+              //then(true);
+              alert("code 添加用户成功！");
+            }else{
+              alert("code 添加用户失败！");
+            }
+          });
+        }
+      });
+    }
+  });
+}
 function add_usersSVRDB(then){
   isExsitDB("_users", function(d){
     if(d == true){
