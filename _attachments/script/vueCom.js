@@ -284,6 +284,9 @@ var demo = new Vue({
     setQueryBack: function(){
       this.searchQuery = this.historyQuery;
       this.historyQuery = "";
+    },
+    flushUI: function(){
+      this.fetchDBCfg();
     }
   }
 })

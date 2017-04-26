@@ -567,7 +567,7 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                             data1.responseJSON = null;
                             data1.responseText = null;
                             od.oc_msg = data1;
-                            od.order.submited = true;
+                            od.submited = true;
                             //window.updateOrdersSubmited(dbcfg, od, xthen);
                             window._updateDB(dbcfg, od, xthen);                           
                         }else if(data1.status == 409){
@@ -577,7 +577,7 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                           data1.responseText = null;
                           od.sync_status = 1;  //success
                           od.oc_msg = data1;
-                          od.order.submited = true;
+                          od.submited = true;
                           //window.updateOrdersSubmited(dbcfg, od, xthen);
                           window._updateDB(dbcfg, od, xthen);
                         }else if(data1.status == 500){
@@ -630,7 +630,7 @@ function sync1Order(dbcfg, od, m, s, xthen) {
             data1.responseText = null;
             od.oc_msg = data1;
             od.AfterSubmittingTime = getTime();
-            od.data.submited = true;
+            od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);                               
           }else if(data1.status == 409){
@@ -686,10 +686,10 @@ function syncOC(dbcfg, m, s, docs, index, then) {
     if (index < docs.length) {
         var od = docs[index],
             xthen = function (order) {
-                console.log("after sync to OC storename=" + getStoreName(order.order));
+                console.log("after sync to OC storename=" + getStoreName(order.data));
                 syncOC(dbcfg, m, s, docs, index + 1, then);
             };
-        console.log("before sync to OC storename=" + getStoreName(od.order));
+        console.log("before sync to OC storename=" + getStoreName(od.data));
         window.sync1Order(dbcfg, od, m, s, xthen);
     } else {
         then();
