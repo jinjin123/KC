@@ -189,7 +189,7 @@ function multipleAjax(retry_day, cfg){
           if(e){
               console.log("resolveConflicts: ", e);
           }
-          cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 30;
+          cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 90;
           ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
               if(err) {
                   console.log("ordersBefore: ", err);
