@@ -603,3 +603,41 @@ function addStoreLCDB(then){
     }
   });
 }
+
+function Deploy_deleteOrders(dbcfg){
+    ajaxCfg("/" + dbcfg["bid"] + "/_design/kc/_view/store", "get", dbcfg["udb"], dbcfg["pdb"], null, function(d){
+      if(d.status == 200){
+        var data = JSON.parse(d.responseText);
+        if(data){
+            //data = JSON.parse(data);
+            var tmp = {
+                "docs":[]
+            };
+            for(var i in data.rows){
+                for(var j in data.rows[i].value){
+                    tmp.docs.push({
+                        "_id": data.rows[i].id,
+                        "_rev":data.rows[i].value[j],
+                        "data": {
+                          "field_de_store_id": data.rows[i].key,
+                        },
+                        "_deleted": true
+                    });
+                }
+            }
+            console.log("INFO: Delete ", tmp);
+            ajaxCfg("/" + dbcfg["bid"] + "/_bulk_docs", "post", dbcfg["udb"], dbcfg["pdb"], tmp, function(_d){
+              if(_d.status == 201 || _d.status == 202 || _d.status == 200){
+                alert("数据删除成功！");
+              }else{
+                alert("数据删除失败！");
+              }
+            });
+        }else{
+          alert("获取的数据为空！");
+        }
+      }else{
+        alert("获取订单失败！");
+      }
+    });
+}

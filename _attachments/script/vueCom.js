@@ -153,7 +153,10 @@ Vue.component('demo-grid', {
            this.message = "Hello,i changed!";
         }
         */
-     },
+    },
+    delAllOrders: function(idx) {
+      Deploy_deleteOrders(this.filteredData[idx]);
+    },
     del: function(idx){
       var _this = this;
       console.log(this.filteredData[idx].bid);

@@ -65,10 +65,11 @@
             </td>
             <td>
               <input type="checkbox" :id="idx" :value="idx" v-model="checkedNames">
-              <button @click.sync="edit(idx)">edit</button>
-              <button @click.sync="save(idx)" :disabled="saveDisabled">save</button>
-              <button @click.sync="check(idx)">check</button>
-              <button @click.sync="del(idx)">del</button>
+              <button @click.sync="edit(idx)">编辑</button>
+              <button @click.sync="save(idx)" :disabled="saveDisabled">保存</button>
+              <button @click.sync="check(idx)">检查</button>
+              <button @click.sync="delAllOrders(idx)">删除所有订单</button>
+              <button @click.sync="del(idx)">删除配置</button>
             </td>
           </tr>
         </tbody>
