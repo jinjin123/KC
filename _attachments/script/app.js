@@ -730,7 +730,7 @@ function resolveConflicts(dbcfg, xthen) {
     function separate(data) {
         var irrelevant = data.filter(function (doc) {
             return !((doc.data)
-                    && (doc.order.order_items)
+                    && (doc.data.order_items)
                     && (typeof(doc.data) === 'object'));
                     //&& (typeof(doc.data.order_items) === "object"));
         });
