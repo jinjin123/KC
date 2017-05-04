@@ -459,10 +459,13 @@ function deleteOrders(dbcfg, data, then){
             "docs":[]
         };
         for(var i in data.rows){
-            for(var j in data.rows[i].value){
+            for(var j in data.rows[i].value.rev){
                 tmp.docs.push({
                     "_id": data.rows[i].id,
-                    "_rev":data.rows[i].value[j],
+                    "_rev":data.rows[i].value.rev[j],
+                    "data": {
+                      "field_de_store_id": data.rows[i].value.field_de_store_id
+                    },
                     "_deleted": true
                 });
             }
