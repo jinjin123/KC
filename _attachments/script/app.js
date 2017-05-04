@@ -689,10 +689,10 @@ function syncOC(dbcfg, m, s, docs, index, then) {
     if (index < docs.length) {
         var od = docs[index],
             xthen = function (order) {
-                console.log("after sync to OC storename=" + getStoreName(order.data));
+                console.log("after sync to OC storename=" + getStoreName(order));
                 syncOC(dbcfg, m, s, docs, index + 1, then);
             };
-        console.log("before sync to OC storename=" + getStoreName(od.data));
+        console.log("before sync to OC storename=" + getStoreName(od));
         window.sync1Order(dbcfg, od, m, s, xthen);
     } else {
         then();
