@@ -576,19 +576,26 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                         }else if(data1.status == 409){
                           console.log("if 0000000000000000000000000000000000");
                           console.log(od);
-                          data1.responseJSON = null;
+                          //data1.responseJSON = null;
                           data1.responseText = null;
-                          od.sync_status = 1;  //success
+                          od.sync_status = -409;  //success
                           od.oc_msg = data1;
-                          od.submited = true;
+                          //od.submited = true;
                           //window.updateOrdersSubmited(dbcfg, od, xthen);
                           window._updateDB(dbcfg, od, xthen);
                         }else if(data1.status == 500){
                             data1.responseText = null;
-                            od.sync_status = 3;  //success
+                            od.sync_status = -500 //3;  //success
                             od.oc_msg = data1;
                             window._updateDB(dbcfg, od, xthen);
-                        } else {
+                        }else if(data1.status == 429){
+                          data1.responseText = null;
+                          od.sync_status = -429;  //success
+                          od.oc_msg = data1;
+                          //od.submited = true;
+                          //window.updateOrdersSubmited(dbcfg, od, xthen);
+                          window._updateDB(dbcfg, od, xthen);
+                        }else {
                             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
                             //unknown error code has return data1
                             if(od.sync_status == 200){
@@ -639,20 +646,27 @@ function sync1Order(dbcfg, od, m, s, xthen) {
           }else if(data1.status == 409){
             console.log("else 00000000000000000000000000000000000000");
             console.log(od);
-            od.sync_status = 1;
-            data1.responseJSON = null;
+            od.sync_status = -409;//1;
+            //data1.responseJSON = null;
             data1.responseText = null;
             od.oc_msg = data1;
             od.AfterSubmittingTime = getTime();
-            od.submited = true;
+            //od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDB(dbcfg, od, xthen);
           }else if(data1.status == 500){
                 data1.responseText = null;
-                od.sync_status = 3;  //success
+                od.sync_status = 500;//3;  //success
                 od.oc_msg = data1;
                 window._updateDB(dbcfg, od, xthen);
-            }else{
+          }else if(data1.status == 429){ //璇锋眰澶
+            data1.responseText = null;
+            od.sync_status = 429;  //success
+            od.oc_msg = data1;
+            //od.submited = true;
+            //window.updateOrdersSubmited(dbcfg, od, xthen);
+            window._updateDB(dbcfg, od, xthen);
+          }else{
             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
             //unknown error code has return data1
             if(od.sync_status == 200){
@@ -877,7 +891,7 @@ function retryFailed(dbcfg, retry_day, cfg, then) {
                   if (o.doc.data) {
                       if(o.doc.sync_status >= 2){
                           //if(o.doc.data.state >= 3){
-                              //filter out 1002 "该订单状态还不能直接跳级修改"
+                              //filter out 1002 "赂脙露漏碌楼脳麓脤卢禄鹿虏禄脛脺脰卤陆脫脤酶录露脨脼赂脛"
                               return o.doc.oc_msg.status != 409;
                               //return true;
                           //}

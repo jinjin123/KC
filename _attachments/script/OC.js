@@ -7,7 +7,7 @@ function ajaxN(options, then){
           console.log('--------success--------');
           console.log(data);
       }
-      console.log("submitOCN success ++++++++++++++++++");
+      //console.log("submitOCN success ++++++++++++++++++");
       if(typeof(then) === 'function'){
           then(jqXHR, null);
       }
@@ -33,8 +33,8 @@ function ajaxN(options, then){
 
 function submitOCN(url, user, password, order, then){
   console.log("submitOCN ++++++++++++++++++++++++++++++++++++");
-  console.log("url:" + url);
-  console.log("user:" + user + " password:" + password);
+  //console.log("url:" + url);
+  //console.log("user:" + user + " password:" + password);
   
   var data = order.data;
   data.state = getNameByNum(data.state);
@@ -56,8 +56,8 @@ function submitOCN(url, user, password, order, then){
 
 function modifyOCN(url, user, password, order, then){
   console.log("modifyOCN ++++++++++++++++++++++++++++++++++++");
-  console.log("url:" + url);
-  console.log("user:" + user + " password:" + password);
+  //console.log("url:" + url);
+  //console.log("user:" + user + " password:" + password);
   var data = getUpdateObjNew(order.data);
   url = checkUrl(url) + data.data.id + "?_format=api_json";
   var options = {
@@ -65,6 +65,27 @@ function modifyOCN(url, user, password, order, then){
     url:url,
     method: "patch",
     data:JSON.stringify(data),
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    beforeSend: function (xhr) {
+       xhr.setRequestHeader ("Authorization", "Basic " + btoa(user + ":" + password));
+    }
+  };
+  ajaxN(options, then);
+}
+function deleteOCN(url, user, password, order, then){
+  console.log("modifyOCN ++++++++++++++++++++++++++++++++++++");
+  //console.log("url:" + url);
+  //console.log("user:" + user + " password:" + password);
+  var data = getUpdateObjNew(order.data);
+  url = checkUrl(url) + data.data.id + "?_format=api_json";
+  var options = {
+    contentType : 'application/vnd.api+json',
+    url:url,
+    method: "delete",
+    //data:JSON.stringify(data),
     dataType:"json",
     processData: false,
     cache: false,
@@ -140,7 +161,7 @@ function multipleAjax(retry_day, cfg){
       if(businesses[itm.bid] == null){
         businesses[itm.bid] = {
           dbcfg: itm,
-          max: 100,
+          max: maxSingle,
           activings: 0,
           activing: false,
           scaning: false
@@ -150,8 +171,8 @@ function multipleAjax(retry_day, cfg){
   }
   function scanBusiness(){
     getLocal("dbcfg1", function(data, err){
-      console.log("INFO: scanBusiness ***************");
-      console.log(data);
+      //console.log("INFO: scanBusiness ***************");
+      //console.log(data);
       if(data){
         addBusiness(data);
       }
@@ -237,12 +258,10 @@ function multipleAjax(retry_day, cfg){
     });
   }
   function runScanOrders(){
-    console.log("runScanOrders ++++++++++++++++++++++++++");
-    console.log(businesses);
+    //console.log("runScanOrders ++++++++++++++++++++++++++");
+    //console.log(businesses);
     for (var Key in businesses){
       if(businesses[Key].activing == false || businesses[Key].activings <= 0){
-        console.log("key:" + Key);
-        console.log("activingAll:" + activingAll);
         businesses[Key].activing = true;
         if(activingAll < maxAll){
           if(!getScanning(businesses[Key].dbcfg)){
@@ -255,14 +274,30 @@ function multipleAjax(retry_day, cfg){
       runScanOrders(); 
     }, 2000);
   }
+  function syncOrder100MS(orders, idx, dbcfg, m, s){
+    if(orders.length != 0 && idx < orders.length){
+      window.setTimeout(function(){
+        sync1Order(dbcfg, orders[idx], m, s, function(){
+          reduceActivings(dbcfg);
+        });
+        syncOrder100MS(orders, idx + 1, dbcfg, m, s);
+      }, 100);
+    }
+  }
+  function syncOrderOneByOne(orders, idx, dbcfg, m, s){
+    if(orders.length != 0 && idx < orders.length){
+      sync1Order(dbcfg, orders[idx], m, s, function(){
+        reduceActivings(dbcfg);
+        window.setTimeout(function(){
+          syncOrderOneByOne(orders, idx + 1, dbcfg, m, s);
+        },100);
+      });
+    }
+  }
   function _scanOrders(dbcfg){
     'use strict';
-    console.log("**************************************");
-    console.log("dbname:" + dbcfg["bid"]);
-    console.log("**************************************");
-    console.log("scanOrders ++++++++++++++++++");
     setScanning(dbcfg, true);
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=" + maxSingle, dbcfg["udb"], dbcfg["pdb"], function(data, err) {
        setScanning(dbcfg, false);
         if(data){
           var m = modifyOC(cfg),
@@ -275,11 +310,15 @@ function multipleAjax(retry_day, cfg){
                         });
           setActivings(dbcfg, orders.length);
           //window.$('#scan_db_success').html(scanDBCounter.success);
+          /*
           orders.forEach(function(od, idx){
             sync1Order(dbcfg, od, m, s, function(){
               reduceActivings(dbcfg);
             });
           });
+          */
+          syncOrderOneByOne(orders, 0, dbcfg, m, s);
+          //syncOrder100MS(orders, 0, dbcfg, m, s);
         } else {
           scanDBCounter.fail++;
           //window.$('#scan_db_fail').html(scanDBCounter.fail);

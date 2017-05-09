@@ -614,16 +614,16 @@ function Deploy_deleteOrders(dbcfg){
                 "docs":[]
             };
             for(var i in data.rows){
-                for(var j in data.rows[i].value){
-                    tmp.docs.push({
-                        "_id": data.rows[i].id,
-                        "_rev":data.rows[i].value[j],
-                        "data": {
-                          "field_de_store_id": data.rows[i].key,
-                        },
-                        "_deleted": true
-                    });
-                }
+              for(var j in data.rows[i].value.rev){
+                  tmp.docs.push({
+                      "_id": data.rows[i].id,
+                      "_rev":data.rows[i].value.rev[j],
+                      "data": {
+                        "field_de_store_id": data.rows[i].value.field_de_store_id
+                      },
+                      "_deleted": true
+                  });
+              }
             }
             console.log("INFO: Delete ", tmp);
             ajaxCfg("/" + dbcfg["bid"] + "/_bulk_docs", "post", dbcfg["udb"], dbcfg["pdb"], tmp, function(_d){
