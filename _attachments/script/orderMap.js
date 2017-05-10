@@ -42,7 +42,7 @@ function getNumByName(n){
 function getUpdateObjNew(order){
 	var d = {},
 			f = [
-				"placed",
+				//"placed",
 				"completed",
 				"field_canceled",
 				"field_delivering_time",
@@ -58,7 +58,7 @@ function getUpdateObjNew(order){
       if(k == "state"){
         v = getNameByNum(v);
       }
-      d[f[k]] = v;
+      d[k] = v;
     }
   }
   var obj = {
