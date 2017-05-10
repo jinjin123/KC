@@ -42,7 +42,7 @@ function getNumByName(n){
 function getUpdateObjNew(order){
 	var d = {},
 			f = [
-				//"placed",
+				"placed",
 				"completed",
 				"field_canceled",
 				"field_delivering_time",
