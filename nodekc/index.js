@@ -45,7 +45,7 @@ function parseURL(url){
         return {
             protocol:value(m[1], "http://"),
             host:value(m[4], "127.0.0.1"),
-            port:value(m[5], ":80")
+            port:value(m[5], "")
         }
     } else {
         return {
@@ -125,6 +125,7 @@ if(cluster.isMaster) {
     jsdom.env({
         url: getKCURL(baseurl, "index.html"),
         scripts: [],
+        strictSSL：false,
         virtualConsole: jsdom.createVirtualConsole().sendTo(console),
         done: function (err, window) {
             if (!window){
