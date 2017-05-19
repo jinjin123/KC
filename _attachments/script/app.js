@@ -562,7 +562,6 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                 //window.updateOrders(dbcfg, od, xthen);
                 window._updateDB(dbcfg, od, xthen);
             } else if (data.status == 404) {
-                console.log("00000000000000000000000000000000000000000000000000000000000");
                 s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
                     if(data1){
                         if(data1.status == 200) {
@@ -574,7 +573,6 @@ function sync1Order(dbcfg, od, m, s, xthen) {
                             //window.updateOrdersSubmited(dbcfg, od, xthen);
                             window._updateDB(dbcfg, od, xthen);                           
                         }else if(data1.status == 409){
-                          console.log("if 0000000000000000000000000000000000");
                           console.log(od);
                           //data1.responseJSON = null;
                           data1.responseText = null;

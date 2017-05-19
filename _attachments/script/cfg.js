@@ -641,3 +641,40 @@ function Deploy_deleteOrders(dbcfg){
       }
     });
 }
+
+function Deploy_deleteOrders11(){
+  var dbcfg = {};
+
+    ajaxCfg("/orders/_design/kc/_view/timestamp?startkey=\"20170311000000\"&endkey=\"20170430235959\"", "get",null, null, null, function(d){
+      if(d.status == 200){
+        var data = JSON.parse(d.responseText);
+        if(data){
+            //data = JSON.parse(data);
+            var tmp = {
+                "docs":[]
+            };
+            for(var i in data.rows){
+              for(var j in data.rows[i].value){
+                  tmp.docs.push({
+                      "_id": data.rows[i].id,
+                      "_rev":data.rows[i].value[j],
+                      "_deleted": true
+                  });
+              }
+            }
+            console.log("INFO: Delete ", tmp);
+            ajaxCfg("/orders/_bulk_docs", "post", null, null, tmp, function(_d){
+              if(_d.status == 201 || _d.status == 202 || _d.status == 200){
+                alert("数据删除成功！");
+              }else{
+                alert("数据删除失败！");
+              }
+            });
+        }else{
+          alert("获取的数据为空！");
+        }
+      }else{
+        alert("获取订单失败！");
+      }
+    });
+}

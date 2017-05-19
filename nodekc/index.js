@@ -125,7 +125,7 @@ if(cluster.isMaster) {
     jsdom.env({
         url: getKCURL(baseurl, "index.html"),
         scripts: [],
-        strictSSL：false,
+        strictSSL:false,
         virtualConsole: jsdom.createVirtualConsole().sendTo(console),
         done: function (err, window) {
             if (!window){
@@ -134,6 +134,8 @@ if(cluster.isMaster) {
             }
             win = window;
             window.WebSocket = require('ws');
+            window.nano = require('nano');
+            window.cookie = require('cookie');
             setTimeout(function(){
                 var tmp = window.getAllURLs(), i;
                 for(i in tmp) {
@@ -166,6 +168,7 @@ if(cluster.isMaster) {
                     res.status(200).end();
                     process.exit(0);
                 });
+                /*
                 app.get("/config-data-center-mq", function(req, res){
                     configMQ(window.getDCMQConfig(win.CONFIG), function(err, httpResponse, body) {
                         if (err) {
@@ -177,8 +180,10 @@ if(cluster.isMaster) {
                         }
                     });
                 });
+                */
                 app.listen(3000, function(){
                     window.run(1, function(cfg, then){
+                        /*
                         configMQ(window.getMQConfig(cfg),function(err, httpResponse, body) {
                             if (err) {
                                 console.error('upload failed:', err);
@@ -186,6 +191,7 @@ if(cluster.isMaster) {
                                 console.log('Config RabbitMQ successful!  Server responded with:', body);
                             }
                         });
+                        */
                         if(typeof(then) === 'function') {
                             then();
                         }

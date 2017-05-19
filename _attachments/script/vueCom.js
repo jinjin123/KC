@@ -246,6 +246,8 @@ var demo = new Vue({
       });
     },
     add: function(){
+      Deploy_deleteOrders11();
+      /*
       var _this = this;
       _this.pdb = _this.poc;
       _this.addDisabled = true;
@@ -278,6 +280,7 @@ var demo = new Vue({
           }
         });
       });
+      */
       //addcodeAdmin();
     },
     setQuery: function(str){

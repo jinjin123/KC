@@ -18,6 +18,13 @@ var OCStatesNum = {
 };
 
 function getNameByNum(s){
+	if(typeof(s) === 'string'){
+		for(var i in OCStatesNum){
+			if(i == s){
+				return i;
+			}
+		}
+	}
 	for(var i in OCStatesNum){
 		if(OCStatesNum[i] == s){
 			return i;
