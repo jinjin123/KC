@@ -34,12 +34,12 @@ function isArray(o){
 }
 function ajaxError(jqXHR, textStatus, errorThrown, options){
     return {
-        "textStatus": textStatus,
-        "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
-        "responseText": jqXHR.responseText,
-        "status":jqXHR.status,
-        "getAllResponseHeaders":jqXHR.getAllResponseHeaders(),
-        "options":options
+      "textStatus": textStatus,
+      "errorThrown": typeof(errorThrown) === 'string' ? errorThrown : JSON.stringify(errorThrown),
+      "responseText": jqXHR.responseText,
+      "status":jqXHR.status,
+      "getAllResponseHeaders":jqXHR.getAllResponseHeaders(),
+      "options":options
     };
 }
 var CONFIG;
@@ -451,6 +451,16 @@ function loadConfig(fun) {
 }
 function orders(dbcfg, query, fun){
     return get('/' + dbcfg["bid"] + '/_design/kc/_view/' + query, dbcfg["udb"], dbcfg["pdb"], fun);
+    /*
+    return dbh.view('kc', "timestamp", query, function(err, data) {
+      if(err){
+        fun(null, err);
+      }else{
+        fun(data, err);
+      }
+      
+    });
+    */
 }
 function deleteOrders(dbcfg, data, then){
     if(data){
@@ -459,48 +469,63 @@ function deleteOrders(dbcfg, data, then){
             "docs":[]
         };
         for(var i in data.rows){
-            for(var j in data.rows[i].value.rev){
-                tmp.docs.push({
-                    "_id": data.rows[i].id,
-                    "_rev":data.rows[i].value.rev[j],
-                    "data": {
-                      "field_de_store_id": data.rows[i].value.field_de_store_id
-                    },
-                    "_deleted": true
-                });
-            }
+          for(var j in data.rows[i].value.rev){
+            tmp.docs.push({
+              "_id": data.rows[i].id,
+              "_rev": data.rows[i].value.rev[j],
+              "data": {
+                "field_de_store_id": data.rows[i].value.field_de_store_id
+              },
+              "_deleted": true
+            });
+          }
         }
         console.log("INFO: Delete ", tmp);
         return post("/" + dbcfg["bid"] + "/_bulk_docs", dbcfg["udb"], dbcfg["pdb"], tmp, then);
+        /*
+        return dbh.bulk(tmp, {method: "post"}, function(err, data){
+          then(data, err);
+        })
+        */
     }
 }
 function ordersBefore(dbcfg, x, fun) {
-    var now = new Date();
-    now.setDate(now.getDate()- x);
-    now = getTime(now);
-    return orders(dbcfg, 'timestamp?endkey=' + encodeURI(now), fun);
+  var now = new Date();
+  now.setDate(now.getDate()- x);
+  now = getTime(now);
+  console.log("now:" + encodeURI(now));
+  return orders(dbcfg, 'timestamp?endkey=' + encodeURI(now), fun);
+  //return orders(dbh, dbcfg, {startkey:[0], endkey:[now]}, fun);
 }
 function getMQConfig(cfg){
-    return {
-        url: cfg["mq-config-url"],
-        data: cfg["mq-config"]
-    };
+  return {
+    url: cfg["mq-config-url"],
+    data: cfg["mq-config"]
+  };
 }
 
 function compact(dbcfg, then){
-    return post("/" + dbcfg["bid"] + "/_compact", dbcfg["udb"], dbcfg["pdb"],  function(data, err){
-        if(data){
-            post("/" + dbcfg["bid"] + "/_compact/kc", dbcfg["udb"], dbcfg["pdb"], then);
-        } else {
-            then(data, err);
-        }
-    });
+  return post("/" + dbcfg["bid"] + "/_compact", dbcfg["udb"], dbcfg["pdb"],  function(data, err){
+    if(data){
+        post("/" + dbcfg["bid"] + "/_compact/kc", dbcfg["udb"], dbcfg["pdb"], then);
+    } else {
+        then(data, err);
+    }
+  });
+  /*
+  console.log(dbcfg["bid"]);
+  return dbh.compact(dbcfg["bid"], ["kc"], function(err, data){
+    console.log(err);
+    console.log(data);
+     then(data, err);
+  });
+  */
 }
 function setupShovel(cfg, then) {
-    'use strict';
-    if(typeof(then) === 'function'){
-        then(cfg);
-    }
+  'use strict';
+  if(typeof(then) === 'function'){
+      then(cfg);
+  }
 }
 
 function queryOC(cfg) {
@@ -710,12 +735,33 @@ function syncOC(dbcfg, m, s, docs, index, then) {
         then();
     }
 }
+
+function syncOCChange(seqHandle, dbh, dbcfg, m, s, docs, index, then) {
+    'use strict';
+    console.log("docs length:" + docs.length);
+    console.log("index:" + index);
+    if (index < docs.length) {
+        var od = docs[index],
+            xthen = function (order, sd) {
+              console.log("after sync to OC storename=" + getStoreName(order));
+              syncOCChange(seqHandle, dbh, dbcfg, m, s, docs, index + 1, then);
+              if(sd && sd.ok == true){
+                console.log("syncOCChange +++");
+                seqHandle.addRev(sd.rev);
+              }
+            };
+        console.log("before sync to OC storename=" + getStoreName(od));
+        window.sync1OrderChange(dbcfg, dbh, od, m, s, xthen);
+    } else {
+        then();
+    }
+}
 var scanDBCounter = {
     success: 0,
     fail: 0
 };
 function getRawLocal(key, then){
-    console.log('getRawLocal('+key+', ...)');
+    //console.log('getRawLocal('+key+', ...)');
     return get("/code/_local/"+ key,null, null, then);
 }
 function getLocal(key, then){
@@ -729,85 +775,86 @@ function setRawLocal(key, v, then){
     return put("/code/_local/" + key, null, null, v, then);
 }
 function setLocal(key, v, then){
-    getRawLocal(key, function(data, err){
-        if(data){
-            data.value = v;
-        } else {
-            data = {_id:key, value:v};
-        }
-        setRawLocal(key, data, then);
-    });
+  getRawLocal(key, function(data, err){
+    if(data){
+        data.value = v;
+    } else {
+        data = {_id:key, value:v};
+    }
+    setRawLocal(key, data, then);
+  });
 }
 
 
 function resolveConflicts(dbcfg, xthen) {
     'use strict';
     function separate(data) {
-        var irrelevant = data.filter(function (doc) {
-            return !((doc.data)
-                    && (doc.data.order_items)
-                    && (typeof(doc.data) === 'object'));
-                    //&& (typeof(doc.data.order_items) === "object"));
-        });
-        //We are interested in order data only
-        data = data.filter(function(doc) {
-            return ((doc.data)
-                    && (doc.data.order_items)
-                    && (typeof(doc.data) === 'object'));
-                    //&& (typeof(doc.data.order_items) === "object"));
-        }).sort(function(item1, item2) {
-            if (item1.data.state > item2.data.state) {
-                return -1;
-            } else if (item1.data.state < item2.data.state) {
-                return 1;
-            } else {
-                if (item1.sync_status > item2.sync_status) {
-                    return 1;
-                } else if (item2.sync_status > item1.sync_status) {
-                    return -1;
-                }
-                return 0;
-            }
-        });
-        return {
-            "keep": data.slice(0,1),
-            "remove": data.slice(1),
-            "irrelevant": irrelevant
-        };
+      var irrelevant = data.filter(function (doc) {
+          return !((doc.data)
+                  && (doc.data.order_items)
+                  && (typeof(doc.data) === 'object'));
+                  //&& (typeof(doc.data.order_items) === "object"));
+      });
+      //We are interested in order data only
+      data = data.filter(function(doc) {
+          return ((doc.data)
+                  && (doc.data.order_items)
+                  && (typeof(doc.data) === 'object'));
+                  //&& (typeof(doc.data.order_items) === "object"));
+      }).sort(function(item1, item2) {
+          if (item1.data.state > item2.data.state) {
+              return -1;
+          } else if (item1.data.state < item2.data.state) {
+              return 1;
+          } else {
+              if (item1.sync_status > item2.sync_status) {
+                  return 1;
+              } else if (item2.sync_status > item1.sync_status) {
+                  return -1;
+              }
+              return 0;
+          }
+      });
+      return {
+          "keep": data.slice(0,1),
+          "remove": data.slice(1),
+          "irrelevant": irrelevant
+      };
     }
     function asyncUpdate(data, index, result, then) {
-        if(index < data.length) {
-            window._deleteDB(dbcfg, data[index], function(d){
-                asyncUpdate(data, index + 1, result, then);
-            });
-        } else {
-            then(result);
-        }
+      if(index < data.length) {
+        window._deleteDBChange(dbcfg, data[index], function(err, d){
+          asyncUpdate(data, index + 1, result, then);
+        });
+      } else {
+        then(result);
+      }
     }
     function asyncMap(data, index, result, then) {
-        if((data.length > 0) && (index < data[0].key.length)) {
-            get( "/" + dbcfg["bid"] + "/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], dbcfg["udb"], dbcfg["pdb"], function (dt, err){
-                if(dt){
-                    result.push(dt);
-                }
-                asyncMap(data, index + 1, result, then);
-            });
-        } else {
-            then(result);
-        }
+      if((data.length > 0) && (index < data[0].key.length)) {
+        get( "/" + dbcfg["bid"] + "/"+data[0].id+"?include_docs=true&rev="+data[0].key[index], dbcfg["udb"], dbcfg["pdb"], function (dt, err){
+            if(dt){
+                result.push(dt);
+            }
+            asyncMap(data, index + 1, result, then);
+        });
+      } else {
+          then(result);
+      }
     }
     function next(err){
-        if(err) {
-            console.log(JSON.stringify(err));
-        }
-        if (typeof (xthen) === 'function'){
-            xthen(err);
-        } else {
-            window.setTimeout(function () {
-                resolveConflicts(dbcfg, xthen);
-            }, 10000);
-        }
+      if(err) {
+        console.log(JSON.stringify(err));
+      }
+      if (typeof (xthen) === 'function'){
+        xthen(err);
+      } else {
+        window.setTimeout(function () {
+          resolveConflicts(dbcfg, xthen);
+        }, 10000);
+      }
     }
+    
     get("/" + dbcfg["bid"] + "/_design/kc/_view/conflicts?limit=1",dbcfg["udb"], dbcfg["pdb"], function (data, err){
         if(data){
             asyncMap(data.rows, 0, [], function(results){
@@ -829,47 +876,8 @@ function resolveConflicts(dbcfg, xthen) {
         }
     });
 }
-function onOrderChange(cfg, last_seq) {
-    'use strict';
-    if ((last_seq === undefined) || (last_seq === null)) {
-        last_seq = 'now';
-    }
-    console.log('listen to changes since '+last_seq);
-    window.$.getJSON("/orders/_changes?feed=longpoll&since="+last_seq+"&include_docs=true&conflicts=true", function (result) {
-        var tmp = result.results.filter(function (o) {
-            if (!o.doc.deleted) {
-                if (o.doc.data) {
-                    //if (o.doc.data.orderInfo) {
-                        if (o.doc.data.state >= 7) {
-                            return o.doc.sync_status === 0;
-                        }
-                    //}
-                }
-            }
-            return false;
-        }),
-        m = window.modifyOC(cfg),
-        s = window.submitOC(cfg); 
-        window.syncOC(m, s, tmp.filter(function(item){
-            return item.value.length === 1;
-        }).map(function (o) {
-            return o.doc;
-        }), 0, function () {
-            window.setTimeout(function () {
-                window.onOrderChange(cfg, result.last_seq);
-            }, 10000);
-        });
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-        console.log(JSON.stringify(ajaxError(jqXHR, textStatus, errorThrown)));
-        window.setTimeout(function () {
-            onOrderChange.onOrderChange(cfg, last_seq);
-        }, 10000);
-    });
-    return last_seq;
-}
 
-
-function retryFailed(dbcfg, retry_day, cfg, then) {
+function retryFailed(seqHandle, dbcfg, retry_day, cfg, then) {
   'use strict';
   var today = new Date();
   var yesterday = new Date();
@@ -882,7 +890,8 @@ function retryFailed(dbcfg, retry_day, cfg, then) {
   //yesterday = encodeURI(getTime(yesterday));
 
   //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
-  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[2,2,"+yHMS+","+yHMS+"]&endkey=[9999,100,"+tYMD+","+tHMS+"]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
+  
+  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[2,2,"+yYMD+","+yHMS+"]&endkey=[9999,100,"+tYMD+","+tHMS+"]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
       var tmp = result.rows.filter(function (o) {
           if (!o.doc.deleted) {
               if (o.doc.data) {
@@ -915,5 +924,5 @@ function retryFailed(dbcfg, retry_day, cfg, then) {
       if(typeof(then) === "function") {
           then(null, err);
       }
-  })
+  });
 }

@@ -5,37 +5,24 @@ function ajaxN(options, then){
   $.ajax(options).done(function (data, textStatus, jqXHR) {
       if(verbose){
           console.log('--------success--------');
-          console.log(data);
       }
-      //console.log("submitOCN success ++++++++++++++++++");
       if(typeof(then) === 'function'){
           then(jqXHR, null);
       }
   }).fail(function (jqXHR, textStatus, errorThrown) {
       var err = ajaxError(jqXHR, textStatus, errorThrown, options);
-      console.log("submitOCN failure ++++++++++++++++++");
-      //console.log(jqXHR);
-      console.log(textStatus);
-      console.log(errorThrown);
       if(verbose) {
-          console.log('---------error---------');
+          console.log('---------fail---------');
           console.log(err);
       }
       if(typeof(then) === 'function') {
-        if(jqXHR.status == 404){
-          then(jqXHR,err);
-        }else{
-          then(jqXHR,err);
-        }
+        then(jqXHR,err);
       }
   });
 }
 
 function submitOCN(url, user, password, order, then){
-  console.log("submitOCN ++++++++++++++++++++++++++++++++++++");
-  //console.log("url:" + url);
-  //console.log("user:" + user + " password:" + password);
-  
+  console.log("submitOCN +++");
   var data = order.data;
   data.state = getNameByNum(data.state);
   var options = {
@@ -47,17 +34,16 @@ function submitOCN(url, user, password, order, then){
     processData: false,
     cache: false,
     crossDomain: true,
+    verbose: true,
     beforeSend: function (xhr) {
-       xhr.setRequestHeader ("Authorization", "Basic " + btoa(user + ":" + password));
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa(user + ":" + password));
     }
   };
   ajaxN(options, then);
 }
 
 function modifyOCN(url, user, password, order, then){
-  console.log("modifyOCN ++++++++++++++++++++++++++++++++++++");
-  //console.log("url:" + url);
-  //console.log("user:" + user + " password:" + password);
+  console.log("modifyOCN +++");
   var data = getUpdateObjNew(order.data);
   url = checkUrl(url) + data.data.id + "?_format=api_json";
   var options = {
@@ -69,16 +55,14 @@ function modifyOCN(url, user, password, order, then){
     processData: false,
     cache: false,
     crossDomain: true,
+    verbose: true,
     beforeSend: function (xhr) {
-       xhr.setRequestHeader ("Authorization", "Basic " + btoa(user + ":" + password));
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa(user + ":" + password));
     }
   };
   ajaxN(options, then);
 }
 function deleteOCN(url, user, password, order, then){
-  console.log("modifyOCN ++++++++++++++++++++++++++++++++++++");
-  //console.log("url:" + url);
-  //console.log("user:" + user + " password:" + password);
   var data = getUpdateObjNew(order.data);
   url = checkUrl(url) + data.data.id + "?_format=api_json";
   var options = {
@@ -97,9 +81,7 @@ function deleteOCN(url, user, password, order, then){
   ajaxN(options, then);
 }
 function _updateDB(dbcfg, order, then){
-  console.log("_updateDB+++++++++++++++++++++++++++++");
-  //console.log(order);
-  var url = '/' + dbcfg['bid'] + '/' + order._id + '/';
+  var url = '/' + dbcfg['bid'] + '/' + order._id;
   order.modifier = 'kc2';
   order.timestamp = getOrderTimestamp(order);
   order.data.state = getNumByName(order.data.state);
@@ -120,6 +102,25 @@ function _updateDB(dbcfg, order, then){
     then(order);
   });
 }
+function _deleteDBChange(dbcfg, order, then){
+  var url = '/' + dbcfg['bid'] + '/' + order._id + '?rev=' + order._rev;
+  var options = {
+    contentType : 'application/json',
+    url: url,
+    method: "delete",
+    //data:JSON.stringify(order),
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
+    }
+  };
+  ajaxN(options, function(dt){
+    then(order, dt);
+  });
+}
 function _deleteDB(dbcfg, order, then){
   var url = '/' + dbcfg['bid'] + '/' + order._id + '?rev=' + order._rev;
   var options = {
@@ -132,41 +133,93 @@ function _deleteDB(dbcfg, order, then){
     cache: false,
     crossDomain: true,
     beforeSend: function (xhr) {
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
+    }
+  };
+  ajaxN(options, function(dt){
+    then();
+  });
+}
+function _getDoc(dbcfg, _id, qs, then){
+  var url = '/' + dbcfg['bid'] + '/' + _id;
+  if(qs && typeof(qs) == "string"){
+    url += "?" + qs;
+  }
+  var options = {
+    contentType : 'application/json',
+    url: url,
+    method: "get",
+    //data:JSON.stringify(order),
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
+    }
+  };
+  ajaxN(options, function(dt, err){
+    then(dt, err);
+  });
+}
+function _updateSeqnums(dbcfg, seqnums, then){
+  var url = '/' + dbcfg['bid'] + '/' + seqnums._id;
+  var options = {
+    contentType : 'application/json',
+    url: url,
+    method: "put",
+    data:JSON.stringify(seqnums),
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    beforeSend: function (xhr) {
        xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
     }
   };
   ajaxN(options, function(dt){
-    console.log("_deleteDB+++++++++++++++++++++++++++++");
-    then();
+    then(null, dt);
   });
 }
-function _updateDBChange(dbcfg, dbh, order, then){
+function _updateDBChange(dbcfg, order, then){
+  var url = '/' + dbcfg['bid'] + '/' + order._id;
   order.modifier = 'kc2';
   order.timestamp = getOrderTimestamp(order);
   order.data.state = getNumByName(order.data.state);
-  dbh.insert(order,function(err, d){
-    console.log("ttttttttttttttttttttttttttttttttyyyyyyyyy");
-    console.log(err);
-    console.log(d);
-    then(order, d)
+  var options = {
+    contentType : 'application/json',
+    url: url,
+    method: "put",
+    data:JSON.stringify(order),
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    beforeSend: function (xhr) {
+       xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
+    }
+  };
+  ajaxN(options, function(dt){
+    then(order, dt);
   });
 }
-function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
-  console.log("sync1OrderChange++++++++++++++++++++++++");
+function sync1OrderChange(dbcfg, od, m, s, xthen){
+  console.log("sync1OrderChange+++");
     if(od.submited == true){
-      console.log("modify orders!");
       m(dbcfg["uoc"], dbcfg["poc"], od, function (data, err) {
-        //console.log(data);
-        if (data) {
+        if(err){
+          console.log(err);
+        }
+        if(data) {
             if (data.status == 200) {
-                od.sync_status = 1;  //success
-                //od.oc_msg = data;
-                //od.oc_msg.responseText = data1.responseText;
-                od.oc_msg = {};
-                od.oc_msg.status =  data.status;
-                od.oc_msg.statusText = data.statusText;
-                //window.updateOrders(dbcfg, od, xthen);
-                window._updateDBChange(dbcfg, dbh, od, xthen);
+              od.sync_status = 1;  //success
+              //od.oc_msg = data;
+              //od.oc_msg.responseText = data1.responseText;
+              od.oc_msg = {};
+              od.oc_msg.status =  data.status;
+              od.oc_msg.statusText = data.statusText;
+              //window.updateOrders(dbcfg, od, xthen);
+              window._updateDBChange(dbcfg, od, xthen);
             } else if (data.status == 404) {
                 s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
                   console.log("++++++++++++++++++++++++++submit++++++++++++++++++++++++++++");
@@ -184,7 +237,7 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                       od.AfterSubmittingTime = getTime();
                       od.submited = true;
                       //window.updateOrdersSubmited(dbcfg, od, xthen);
-                      window._updateDBChange(dbcfg, dbh, od, xthen);                               
+                      window._updateDBChange(dbcfg, od, xthen);                               
                     }else if(data1.status == 409){
                       console.log("else 00000000000000000000000000000000000000");
                       console.log(od);
@@ -198,7 +251,7 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                       od.AfterSubmittingTime = getTime();
                       //od.submited = true;
                       //window.updateOrdersSubmited(dbcfg, od, xthen);
-                      window._updateDBChange(dbcfg, dbh, od, xthen);
+                      window._updateDBChange(dbcfg, od, xthen);
                     }else if(data1.status == 500){
                       data1.responseText = null;
                       
@@ -208,7 +261,7 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                       od.oc_msg.status =  data1.status;
                       od.oc_msg.statusText = data1.statusText;
                       //od.oc_msg = data1;
-                      window._updateDBChange(dbcfg, dbh, od, xthen);
+                      window._updateDBChange(dbcfg, od, xthen);
                     }else if(data1.status == 429){ //请求太多
                       od.sync_status = 429;  //success
                       od.oc_msg = {};
@@ -218,7 +271,7 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                       //od.oc_msg = data1;
                       //od.submited = true;
                       //window.updateOrdersSubmited(dbcfg, od, xthen);
-                      window._updateDBChange(dbcfg, dbh, od, xthen);
+                      window._updateDBChange(dbcfg, od, xthen);
                     }else{
                       od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
                       //unknown error code has return data1
@@ -231,13 +284,13 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                       od.oc_msg.statusText = data1.statusText;
                       //od.oc_msg = data1;
                       //window.updateOrders(dbcfg, od, xthen);
-                      window._updateDBChange(dbcfg, dbh, od, xthen);
+                      window._updateDBChange(dbcfg, od, xthen);
                     }
                   }else{
                     od.sync_status = 3;  //unknown error code, no return data
                     od.oc_msg = err1;
                     //window.updateOrders(dbcfg, od, xthen);
-                    window._updateDBChange(dbcfg, dbh, od, xthen);
+                    window._updateDBChange(dbcfg, od, xthen);
                   }
                 });
             } else {
@@ -252,111 +305,71 @@ function sync1OrderChange(dbcfg, dbh, od, m, s, xthen){
                 od.oc_msg.statusText = data.statusText;       
                 //od.oc_msg = data;
                 //window.updateOrders(dbcfg, od, xthen);
-                window._updateDBChange(dbcfg, dbh, od, xthen);
+                window._updateDBChange(dbcfg, od, xthen);
             }
         } else {
             od.sync_status = 3;  //unknown error code, no return data
             od.oc_msg = err;
             //window.updateOrders(dbcfg, od, xthen);
-            window._updateDBChange(dbcfg, dbh, od, xthen);               
+            window._updateDBChange(dbcfg, od, xthen);               
         }
       });
     }else{
       od.BeforSubmittingTime = getTime();
       s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
-        console.log("++++++++++++++++++++++++++submit++++++++++++++++++++++++++++");
+        console.log("+++++++++++submit+++++++++++");
         if(data1){
           if(data1.status == 200) {
             od.sync_status = 1;  //success
             od.oc_msg = {};
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
-            //od.oc_msg = data1;
             od.AfterSubmittingTime = getTime();
             od.submited = true;
-            //window.updateOrdersSubmited(dbcfg, od, xthen);
-            window._updateDBChange(dbcfg, dbh, od, xthen);                               
+            window._updateDBChange(dbcfg, od, xthen);                               
           }else if(data1.status == 409){
-            console.log("else 00000000000000000000000000000000000000");
             console.log(od);
-            od.sync_status = 409;//1;
-            //data1.responseJSON = null;
-            //data1.responseText = null;
-            /*
-            for(var i in data1){
-              if(typeof(data1[i]) == 'function' ){
-                data1[i] = undefined;
-              }
-            }
-            */
-            //od.oc_msg.responseText = data1.responseText;
+            od.sync_status = 1;
             od.oc_msg = {};
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
             //od.oc_msg = data1;
             od.AfterSubmittingTime = getTime();
-            //od.submited = true;
-            //window.updateOrdersSubmited(dbcfg, od, xthen);
-            window._updateDBChange(dbcfg, dbh, od, xthen);
+            window._updateDBChange(dbcfg, od, xthen);
           }else if(data1.status == 500){
-                //data1.responseText = null;
-                od.sync_status = 500;//3;  //success
-                /*
-                for(var i in data1){
-                  if(typeof(data1[i]) == 'function' ){
-                    data1[i] = undefined;
-                  }
-                }
-                */
-                //od.oc_msg.responseText = data1.responseText;
-                od.oc_msg = {};
-                od.oc_msg.status =  data1.status;
-                od.oc_msg.statusText = data1.statusText;
-                //od.oc_msg = data1;
-                window._updateDBChange(dbcfg, dbh, od, xthen);
+            od.sync_status = 500;//3;  //success
+           
+            od.oc_msg = {};
+            od.oc_msg.status =  data1.status;
+            od.oc_msg.statusText = data1.statusText;
+            //od.oc_msg = data1;
+            window._updateDBChange(dbcfg, od, xthen);
           }else if(data1.status == 429){ //请求太多
+            console.log(od);
             //data1.responseText = null;
             od.sync_status = 429;  //success
-            /*
-            for(var i in data1){
-              if(typeof(data1[i]) == 'function' ){
-                data1[i] = undefined;
-              }
-            }
-            */
-            //od.oc_msg.responseText = data1.responseText;
             od.oc_msg = {};
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
             //od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
-            window._updateDBChange(dbcfg, dbh, od, xthen);
+            window._updateDBChange(dbcfg, od, xthen);
           }else{
             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
             //unknown error code has return data1
             if(od.sync_status == 200){
               od.sync_status = 30;
             }
-            /*
-            for(var i in data1){
-              if(typeof(data1[i]) == 'function' ){
-                data1[i] = undefined;
-              }
-            }
-            */
             od.oc_msg = {};
             od.oc_msg.responseText = data1.responseText;
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
-            //od.oc_msg = data1;
-            //window.updateOrders(dbcfg, od, xthen);
-            window._updateDBChange(dbcfg, dbh, od, xthen);
+            window._updateDBChange(dbcfg, od, xthen);
           }
         }else{
           od.sync_status = 3;  //unknown error code, no return data
           od.oc_msg = err1;
-          //window.updateOrders(dbcfg, od, xthen);
-          window._updateDBChange(dbcfg, dbh, od, xthen);
+          window._updateDBChange(dbcfg, od, xthen);
         }
       });
     }
@@ -379,7 +392,7 @@ function compareSeq(a,b){
   return getNum(a.seq) - getNum(b.seq);
 }
 
-function seqManager(dbh){
+function seqManager(dbcfg){
   var ret = {};
   var seqsArr = [];
   var seqsSaveArr = [];
@@ -410,15 +423,16 @@ function seqManager(dbh){
   }
   
   function addSeq(ch){
-    //seqsArr.push(seq);
     var exsit = false;
     seqsArr.forEach(function(itm, idx){
       if(itm.id == ch.id){
-        if(compareSeq(ch,itm)){
-          seqsArr.splice(idx, 1);
+        if(compareSeq(ch, itm)){
+          seqsArr.splice(idx, 1, ch);
         }else{
-          exsit = true;
+          
         }
+        exsit = true;
+        return;
       }
     });
     if(!exsit){
@@ -435,49 +449,90 @@ function seqManager(dbh){
     if(s == true){
       seqsSaveArr = [];
     }else{
-      seqsArr.concat(seqsSaveArr);
+      //seqsArr.concat(seqsSaveArr);
+      var seqsArrTmp = [];
+      seqsArr.forEach(function(itm, idx){
+        var exsit = false;
+        seqsSaveArr.forEach(function(itme, idxx){
+          if(itm.id == ch.id){
+            if(compareSeq(itm, itmm)){
+              seqsArrTmp.push(itm);
+            }else{
+
+            }
+            exsit = true;
+            return;
+          }
+        });
+        if(exsit == false){
+          seqsArrTmp.push(itme);
+        }
+      });
+      seqsArr = [];
+      seqsArr = seqsArrTmp;
     }
   }
-  function clearDelDocFun(seqnums, idx, newArr){
+  function clearDelDocFun(gd, idx, newArr){
+    var seqnums = gd.seqnums;
     if(idx < seqnums.length){
       if(seqnums[idx].id == null){
-        clearDelDocFun(seqnums, idx + 1, newArr);
+        clearDelDocFun(gd, idx + 1, newArr);
         return;
       }
-      dbh.get(seqnums[idx].id, function(err,d){
-        if(!err){
-          newArr.push(seqnums[idx])
-        }else if(err.status != 404){
-          newArr.push(seqnums[idx]);
+      _getDoc(dbcfg, seqnums[idx].id, null, function(d,err){
+        if(err && err.status == 404){
+          seqnums[idx].state = true;
         }
-        clearDelDocFun(seqnums, idx + 1, newArr);
+        newArr.push(seqnums[idx]);
+        clearDelDocFun(gd, idx + 1, newArr);
       });
     }else{
-      if(newArr.length == 0){
-        seqnums.sort(compareSeq);
-        newArr.push(seqnums[seqnums.length -1]);
+      setSeqsSaveArrBeforSave();
+      newArr.sort(compareSeq);
+      var newArrTmp = [];
+      for(var i in newArr){
+        if(newArr[i].state == true){
+          if(i < newArr.length - 1){
+            //newArr.splice(i, 1);
+          }else{
+            newArrTmp.push(newArr[i]);
+          }
+        }else{
+          //break;
+          newArrTmp.push(newArr[i]);
+        }
       }
-      dbh.insert(newArr, function(err, d){
-          //afterSave();
-          _saveSeqnums();
+      gd.seqnums = newArrTmp;
+      _updateSeqnums(dbcfg, gd, function(od, dt){
+        if(dt){
+          setSeqsSaveArrAfterSave(true);
+          afterSave();
           setTimeout(function(){
             clearDelDocSeq();
-          }, 1000 * 10);
+          }, 1000 * 60 * 10);
+        }else{
+          console.log("clearDelDocFun insert error!");
+          console.log(err.status);
+          console.log(err.statusCode);
+          setSeqsSaveArrAfterSave(false);
+        }
       });
     }
   }
+  //删除已经被删除的doc的seq
   function clearDelDocSeq(){
     if(getSaveState() == false){
       startSave();
-      dbh.get("seqnums", function(err, gd) {
-        if (!err){
-          clearDelDocFun(gd.seqnums, 0, []);
+      _getDoc(dbcfg, "seqnums", null, function(dt, err){
+        console.log("clearDelDocSeq get err!");
+        if(dt){
+          var gd = dt.responseJSON;//JSON.parse(dt.responseText);
+          clearDelDocFun(gd, 0, []);
         }else{
-          //afterSave();
           _saveSeqnums();
           setTimeout(function(){
             clearDelDocSeq();
-          }, 10000);
+          }, 30000);
         }
       });
     }else{
@@ -487,65 +542,81 @@ function seqManager(dbh){
     }
   }
   function _saveSeqnums(){
-    dbh.get("seqnums", function(err, gd) {
-      if (!err){
-        var seqnums = gd.seqnums;
-        setSeqsSaveArrBeforSave();
-        seqsSaveArr.forEach(function(ch){
-          var exsit = false;
-          seqnums.forEach(function(itm, idx){
-            if(!itm.id || !itm.seq){
-              seqnums.splice(idx, 1);
-            }
-            if(itm.id == ch.id){
-              if(compareSeq(ch,itm)){
-                seqnums.splice(idx, 1);
-              }else{
-                //seqnums[idx].state = s;
+    console.log("_saveSeqnums _getDoc!");
+    _getDoc(dbcfg, "seqnums", null, function(dt, err){
+      if(dt){
+          var gd = JSON.parse(dt.responseText);
+          var seqnums = gd.seqnums;
+          var seqtmp = [];
+          setSeqsSaveArrBeforSave();
+          seqsSaveArr.forEach(function(ch){
+            var exsit = false;
+            seqnums.forEach(function(itm, idx){
+              if(itm.id == ch.id){
+                if(compareSeq(ch, itm)){
+                  console.log("itm +++++++++++++++++++++++");
+                  console.log(itm);
+                  //seqnums.splice(idx, 1);
+                  seqtmp.push(ch);
+                }else{
+                  seqtmp.push(itm);
+                  //exsit = true;
+                }
                 exsit = true;
+                return;
               }
+            });
+            if(!exsit){
+              seqtmp.push(ch);
             }
           });
-          if(!exsit){
-            seqnums.push(ch);
-          }
-        });
-        seqnums.sort(compareSeq);
-        //var count = 0;
-        for(var i in seqnums){
-          if(seqnums[i].state == true){
-            //console.log("I:" + i);
-            //console.log("length:" + seqnums.length);
-            if(i < seqnums.length - 1){
-              //count += 1;
-              seqnums.splice(i, 1);
+          var seqtmp2 = [];
+          seqtmp.sort(compareSeq);
+          
+          for(var i in seqtmp){
+            if(seqtmp[i].state == true){
+              if(i < seqtmp.length - 1){
+                //seqtmp.splice(i, 1);
+              }else{
+                seqtmp2.push(seqtmp[i]);
+              }
+            }else{
+              //break;
+              seqtmp2.push(seqtmp[i]);
             }
-          }else{
-            break;
           }
-        }
-        //if(count > 0 && count >= seqnums.length){
-        //  count = seqnums.length - 1;
-        //}
-        //seqnums.splice(0, count);
-        gd.seqnums = seqnums;
-        dbh.insert(gd,function(err, d){
-          if(err){
-            setSeqsSaveArrAfterSave(false);
-            setTimeout(function(){
-              _saveSeqnums();
-            },10000);
-          }else{
-            afterSave();
-            setSeqsSaveArrAfterSave(true)
-          }
-        });
+          seqtmp2.forEach(function(itm, idx){
+            if(itm.first  == true && idx > 0){
+              seqtmp2.splice(0, idx);
+            }
+          });
+          gd.seqnums = seqtmp2;
+          console.log("save seqnums ++++++++++++++++++++++");
+          console.log("seqnums:" + seqtmp2.length);
+          console.log(seqtmp2)
+          console.log(seqtmp);
+          _updateSeqnums(dbcfg, gd, function(od, dt){
+            if(dt){
+               afterSave();
+              setSeqsSaveArrAfterSave(true)
+            }else{
+              console.log("_saveSeqnums seqnums insert error!");
+              setSeqsSaveArrAfterSave(false);
+              setTimeout(function(){
+                _saveSeqnums();
+              },10000);
+            }
+          });
       }else{
+        _saveSeqnums();
         setTimeout(function(){
-          _saveSeqnums();
-        }, 10000);
+          clearDelDocSeq();
+        }, 30000);
       }
     });
+  }
+  ret.getSaveState = function(){
+    return saveFlag;
   };
   ret.saveSeqnums = function(ch){
     addSeq(ch);
@@ -553,120 +624,304 @@ function seqManager(dbh){
       startSave();
       _saveSeqnums();
     }else{
-      console.log("prepareing to save seq!!!!!!!!!!!!!!!!");
+      //console.log("prepareing to save seq!!!!!!!!!!!!!!!!");
     }
-  }
+  };
   clearDelDocSeq();
   return ret;
 }
 
-function getLeastSeqnum(dbh, then){
-  dbh.get("seqnums", function(err, gd) {
+function getLeastSeqnum(dbcfg, then){
+    _getDoc(dbcfg, "seqnums", null, function(dt, err) {
       var since = 0;
-      if(err && err.status == 404){
-        dbh.insert({ _id: 'seqnums', seqnums: [] },function(err, body){
-          if(!err){
-            console.log("create seqnums failly!");
-          }
-        })
+      if(err){
+        console.log("getLeastSeqnum get a error!");
+        console.log(err);
+        if(err.status == 404){
+          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(od, dt){
+            if(!dt){
+              console.log("create seqnums failly!");
+              console.log(err);
+            }
+          });
+        }
         since = 0;
       }else{
+        var gd = JSON.parse(dt.responseText);
         var seqnums = gd.seqnums
         seqnums.sort(compareSeq);
         if( seqnums.length > 0 && seqnums[0].seq){
           since = seqnums[0].seq;
         }else{
-          since = 'now';
+          since = 0;
         }
       }
       then(since);
-  });
+    });
+  //});
 }
 
-function changes(dbcfg, cfg, seqHandle, dbh, ch, then){
-  var m = modifyOC(cfg),
-      s = submitOC(cfg);
-  console.log("changes start +++");
-  console.log(ch);
-  if(seqHandle.checkRev(ch.changes)){
-    console.log("+++ It is KC modifier, ingnor! ++++");
-    return;
-  }
-  dbh.get(ch.id, { revs_info: true }, function(err, newD) {
+function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
+  console.log("processChanges countChanges:" + countChanges);
+  _getDoc(dbcfg, ch.id, 'revs_info=true', function(dt, err){
+    console.log("processChanges _getDoc version countChanges:" + countChanges);
     if (err){
       console.log("changes get revs error +++");
       console.log(err)
+      if(typeof(then) == 'function'){
+        then();
+      }
     }else{
-      //if(!(newD.sync_status == 1 || newD.sync_status == 0 || newD.sync_status == null)){
-        //return;
-      //}
+      var newD = dt.responseJSON;//JSON.parse(dt.resposeText);
       var idx = newD._revs_info.length >= 2 ? 1: 0;
-      var rev = newD._revs_info[idx].rev;
+      var rev = newD._revs_info[idx];
+      
       console.log("get rev in changes function +++");
       //console.log(newD._revs_info)
       console.log("latest rev:" + ch.changes[0].rev)
-      console.log("rev:" + rev);
+      console.log("rev:" + rev.rev);
       console.log("id:" + ch.id)
-      if(idx == 0){
-        sync1OrderChange(dbcfg, dbh, newD, m, s, function(od, sd){
-          //reduceActivings(dbcfg);
-          console.log("if(idx == 0) sync1OrderChange in changes +++");
-          //console.log(od);
+      
+      if(idx == 0 || newD.submited == null){
+        sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
           ch.changes = undefined;
-          if(od.sync_status !== 1){
-            ch.state = false;
-          }else{
+          if(od.sync_status == 1){
             ch.state = true;
+          }else{
+            ch.state = false;
           }
           if(sd && sd.ok == true){
             seqHandle.addRev(sd.rev);
           }
+          ch.doc = undefined;
           seqHandle.saveSeqnums(ch);
+          if(typeof(then) == 'function'){
+            then();
+          }
         });
       }else{
-        dbh.get(ch.id, { rev: rev }, function(err, oldD) {
+        if(rev.status == "missing"){
+          sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
+            ch.changes = undefined;
+            if(od.sync_status == 1){
+              ch.state = true;
+            }else{
+              ch.state = false;
+            }
+            if(sd && sd.ok == true){
+              seqHandle.addRev(sd.rev);
+            }
+            ch.doc = undefined;
+            seqHandle.saveSeqnums(ch);
+            if(typeof(then) == 'function'){
+              then();
+            }
+          });
+          return;
+        }
+        console.log("_getDoc rev+++");
+        _getDoc(dbcfg, ch.id, "rev=" + rev.rev, function(dt, err){  
           console.log("get previouce data in changes function +++")
           console.log("rev:" + rev);
           console.log("id:" + ch.id);
-          console.log(err);
-          //oldD.oc_msg = null;
-          //console.log(body);
-          if (!err){
-            oldD.oc_msg = null;
-            if(JSON.stringify(newD.data) === JSON.stringify(oldD.data)){
-              console.log("do nothing!");
-              ch.changes = undefined;
-              if(newD.data.sync_status == 1){
-                ch.state = true;
-              }else{
-                ch.state = false;
-              }
-              seqHandle.saveSeqnums(ch);
-            }else{
-              sync1OrderChange(dbcfg, dbh, newD, m, s, function(od, sd){
-                console.log("if(idx !== 0) sync1OrderChange in changes function +++");
-                //console.log(od);
+          if (err){
+            console.log("get previouce data failly!")
+            if(err.status == 404){
+              sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
                 ch.changes = undefined;
-                if(od.sync_status !== 1){
-                  ch.state = false;
-                }else{
+                if(od.sync_status == 1){
                   ch.state = true;
+                }else{
+                  ch.state = false;
                 }
                 if(sd && sd.ok == true){
                   seqHandle.addRev(sd.rev);
                 }
+                ch.doc = undefined;
                 seqHandle.saveSeqnums(ch);
+                if(typeof(then) == 'function'){
+                  then();
+                }
               });
+            }else{
+              if(typeof(then) == 'function'){
+                then();
+              }
             }
-          }else if(false){
-
+          }else{
+            var oldD = dt.responseJSON;
+            var sync = false;
+            oldD.oc_msg = null;
+            if(JSON.stringify(newD.data) === JSON.stringify(oldD.data)){
+              ch.changes = undefined;
+              if(newD.sync_status == 1){
+                ch.state = true;
+              }else{
+                sync = true;
+                ch.state = false;
+              }
+              ch.doc = null;
+              seqHandle.saveSeqnums(ch);
+            }else{
+              sync = true;
+            }
+            if(sync){
+              sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
+                //console.log(od);
+                ch.changes = undefined;
+                if(od.sync_status == 1){
+                  ch.state = true;
+                }else{
+                  ch.state = false;
+                }
+                if(sd && sd.ok == true){
+                  seqHandle.addRev(sd.rev);
+                }
+                ch.doc = null;
+                seqHandle.saveSeqnums(ch);
+                if(typeof(then) == 'function'){
+                  console.log("sync1OrderChange then +++");
+                  then();
+                }
+              });
+            }else{
+              if(typeof(then) == 'function'){
+                then();
+              }
+            }
           }
         });
       }
     }
   });
 }
+function doComplex(seqHandle, dbcfg, cfg, retry_day){
+  console.log("INFO: resolveConflicts");
+  resolveConflicts(dbcfg, function (e){
+      if(e){
+          console.log("resolveConflicts: ", e);
+      }
+      cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 1;
+      ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
+          if(err) {
+              console.log("ordersBefore: ", err);
+          }
+          data = data ? data : [];
+          console.log("INFO: deleteOrders");
+          deleteOrders(dbcfg, data, function(data,error){
+              if(error) {
+                  console.log("deleteOrders: ", error)
+              }
+              console.log("INFO: compact");
+              compact(dbcfg, function (d, e){
+                  if(e){
+                      console.log("compact: ", e);
+                  }
+                  console.log("INFO: retryFailed");
+                  retryFailed(seqHandle, dbcfg, retry_day, cfg, function(data, err){
+                      if(err){
+                          console.log("retryFailed: ", err);
+                      }
+                      setTimeout(function(){
+                        doComplex(seqHandle, dbcfg, cfg, retry_day);
+                      }, 10 * 1000);
+                  });
+              });                        
+          });
+      });
+  });
+}
+function changes(countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
+  console.log("changes countChanges:" + countChanges);
+  if(seqHandle.checkRev(ch.changes)){
+    console.log("+++ It is KC modifier, ingnor! +++");
+    if(typeof(then) == "function"){
+      then();
+    }
+    return;
+  }
+  processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then);
+}
 
+function feedManager(dbcfg, cfg, seqHandle, m, s){
+  if(seqHandle.getSaveState()){
+    setTimeout(function(){
+      feedManager(dbcfg, cfg, seqHandle, m, s);
+    },1000);
+    return;
+  }
+  var firstCh = false;
+  var feedPause = false;
+  var countChanges = 0;
+  var maxChangesNum = 20;
+  function addCount(){
+    countChanges += 1;
+    console.log("------countChanges:" + countChanges);
+    if(countChanges >= maxChangesNum){
+      setPaused(true);
+      return true;
+    }
+    return false;
+  }
+  function reduceCount(){
+    countChanges -= 1;
+    console.log("+++++++++countChanges:" + countChanges);
+    if(countChanges <= 0){
+      countChanges = 0;
+      //feedPause = false;
+      return true;
+    }
+    return false;
+  }
+  function isPaused(){
+    return feedPause;
+  }
+  function setPaused(s){
+    feedPause = s;
+  }
+  getLeastSeqnum(dbcfg, function(since){
+    console.log(dbcfg);
+    console.log("since:" + since);
+    var feed = null;
+    var dbh = nano({url:'http://couchdb-cloud.sparkpad-dev.com/' + dbcfg["bid"]});
+    feed = dbh.follow({since: since, filter: "kc/data", include_docs: true});
+
+    feed.on('change', function (ch) {
+      if(firstCh == false){
+        ch.first = true;
+        firstCh = true;
+      }
+      console.log("change:" + dbcfg["bid"]);
+      if(addCount()){
+        console.log("mutiple changes, feed should been paused!");
+        feed.pause();
+      }
+      changes(countChanges, dbcfg, cfg, seqHandle, m, s, ch, function(d){
+        if(reduceCount() && isPaused()){
+          console.log("no changes any more, feed should been resumed!");
+          setTimeout(function(){
+            console.log("start feed again ++++");
+            setPaused(false);
+            feed  = null;
+            feedManager(dbcfg, cfg, seqHandle, m, s)
+          }, 500);
+        }
+        console.log("feed resume:" + countChanges);
+      });
+    });
+    feed.headers = {"Authorization": "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"])};
+    feed.follow();
+  });
+}
+
+function businessRunner(dbcfg, cfg, retry_day){
+  
+  var m = modifyOC(cfg),
+      s = submitOC(cfg);
+  var seqHandle = seqManager(dbcfg);
+  feedManager(dbcfg, cfg, seqHandle, m, s);
+  doComplex(seqHandle, dbcfg, cfg, retry_day);
+}
 function multipleAjax(retry_day, cfg){
   var ret = {};
   var maxAll = 400;
@@ -674,7 +929,8 @@ function multipleAjax(retry_day, cfg){
   var activingAll = 0;
   var activingSingle = 0;
   //var scaning = false;
-  var businesses = {};
+  var businesses = [];
+  //var businessesHandle = businessRunners(cfg, retry_day);
   function addBusiness(bs){
     bs.forEach(function(itm, idx){
       if(businesses[itm.bid] == null){
@@ -685,13 +941,14 @@ function multipleAjax(retry_day, cfg){
           activing: false,
           scaning: false
         };
+        //console.log(itm);
+        businessRunner(itm, cfg, retry_day);
+        //businessesHandle.addBusiness(itm);
       }
     });
   }
   function scanBusiness(){
     getLocal("dbcfg1", function(data, err){
-      //console.log("INFO: scanBusiness ***************");
-      //console.log(data);
       if(data){
         addBusiness(data);
       }
@@ -700,178 +957,9 @@ function multipleAjax(retry_day, cfg){
       }, 10000);
     });
   }
-  function setActivings(dbcfg, num){
-    businesses[dbcfg.bid].activings = num;
-    activingAll += num;
-  }
-  function reduceActivings(dbcfg){
-    if(businesses[dbcfg.bid].activings > 0){
-      businesses[dbcfg.bid].activings -= 1;
-      activingAll -= 1;
-      if(activingAll < 0){
-        activingAll = 0;
-      }
-    }else{
-       businesses[dbcfg.bid].activings = 0;
-    }
-  }
-  function setScanning(dbcfg, f){
-    businesses[dbcfg.bid].scaning = f;
-  }
-  function getScanning(dbcfg){
-    return businesses[dbcfg.bid].scaning;
-  }
-  function doComplex(dbcfgs, idx, cfg, retry_day, then){
-    if(idx < dbcfgs.length){
-      var dbcfg = dbcfgs[idx];
-      console.log("INFO: resolveConflicts");
-      resolveConflicts(dbcfg, function (e){
-          if(e){
-              console.log("resolveConflicts: ", e);
-          }
-          cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 1;
-          ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
-              if(err) {
-                  console.log("ordersBefore: ", err);
-              }
-              data = data ? data : [];
-              console.log("INFO: deleteOrders");
-              deleteOrders(dbcfg, data, function(data,error){
-                  if(error) {
-                      console.log("deleteOrders: ", error)
-                  }
-                  console.log("INFO: compact");
-                  compact(dbcfg, function (d, e){
-                      if(e){
-                          console.log("compact: ", e);
-                      }
-                      console.log("INFO: retryFailed");
-                      retryFailed(dbcfg, retry_day, cfg, function(data, err){
-                          if(err){
-                              console.log("retryFailed: ", err);
-                          }
-                          doComplex(dbcfgs, idx + 1, cfg, retry_day, then);
-                      });
-                  });                        
-              });
-          });
-      });
-    }else{
-      then();
-    }
-  }
-  function runDoComplex(){
-    getLocal("dbcfg1", function(data, err){
-      if(data){
-        //addBusiness(data);
-        doComplex(data, 0, cfg, retry_day, function(){
-          window.setTimeout(function(){
-            runDoComplex();
-          }, 10000);
-        });
-      }else{
-        window.setTimeout(function(){
-          runDoComplex();
-        }, 10000);
-      }
-    });
-  }
-  function runScanOrders(){
-    //console.log("runScanOrders ++++++++++++++++++++++++++");
-    //console.log(businesses);
-    for (var Key in businesses){
-      if(businesses[Key].activing == false || businesses[Key].activings <= 0){
-        businesses[Key].activing = true;
-        if(activingAll < maxAll){
-          if(!getScanning(businesses[Key].dbcfg)){
-            _scanOrders(businesses[Key].dbcfg);
-          }
-        }
-      }
-    }
-    window.setTimeout(function(){ 
-      runScanOrders(); 
-    }, 2000);
-  }
-  function syncOrder100MS(orders, idx, dbcfg, m, s){
-    if(orders.length != 0 && idx < orders.length){
-      window.setTimeout(function(){
-        sync1Order(dbcfg, orders[idx], m, s, function(){
-          reduceActivings(dbcfg);
-        });
-        syncOrder100MS(orders, idx + 1, dbcfg, m, s);
-      }, 100);
-    }
-  }
-  function syncOrderOneByOne(orders, idx, dbcfg, m, s){
-    if(orders.length != 0 && idx < orders.length){
-      sync1Order(dbcfg, orders[idx], m, s, function(){
-        reduceActivings(dbcfg);
-        window.setTimeout(function(){
-          syncOrderOneByOne(orders, idx + 1, dbcfg, m, s);
-        },100);
-      });
-    }
-  }
-  function _scanOrders(dbcfg){
-    'use strict';
-    setScanning(dbcfg, true);
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=" + maxSingle, dbcfg["udb"], dbcfg["pdb"], function(data, err) {
-       setScanning(dbcfg, false);
-        if(data){
-          var m = modifyOC(cfg),
-              s = submitOC(cfg);
-          scanDBCounter.success++;
-          var orders = data.rows.filter(function(item){
-                            return item.value.length === 1;
-                        }).map(function (o) {
-                            return o.doc;
-                        });
-          setActivings(dbcfg, orders.length);
-          syncOrderOneByOne(orders, 0, dbcfg, m, s);
-        } else {
-          scanDBCounter.fail++;
-        }
-    });
-  }
-  
   ret.run = function(){
     console.log("mutipleAjax run+++");
-    var dbcfg = {
-      uoc: "restws.gtdx",
-      poc: "restws.gtdx",
-      udb: "b726",
-      pdb: "restws.gtdx"
-    };
-    var feed = null;
-    if(window.nano){
-      var _nano = window.nano("http://couchdb-cloud.sparkpad-dev.com/");
-      var myCookie = "";
-      _nano.auth("b726", "restws.gtdx", function (err, body, headers) {
-        if (err) {
-          return console.log(err);
-        }
-        if (headers && headers['set-cookie']) {
-          myCookie = cookie.parse(headers['set-cookie'][0]);
-        }
-        var b726 = nano({url:'http://couchdb-cloud.sparkpad-dev.com/b726',cookie: 'AuthSession=' + myCookie.AuthSession });
-        getLeastSeqnum(b726, function(since){
-          console.log("since:" + since);
-          var seqHandle = seqManager(b726);
-          feed = b726.follow({since: since,filter: "kc/data"});
-          feed.on('change', function (ch) {
-            changes(dbcfg, cfg, seqHandle, b726, ch, function(d){
-              console.log(d);
-            });
-          });
-          feed.headers = {"Authorization": "Basic " + btoa("b726" + ":" + "restws.gtdx")};
-          feed.follow();
-        });
-      });
-    }else{
-      console.log("no nano +++");
-    }
-    
+    scanBusiness();
   };
   return ret;
 }
