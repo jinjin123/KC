@@ -399,12 +399,13 @@ function seqManager(dbcfg){
   var revs = [];
   var saveFlag = false;
   var changeTime = (new Date()).getTime();
+  var overtimes = 2 * 60 * 1000;
   function setChangeTime(){
     changeTime = (new Date()).getTime();
   }
   function overChangeTime(){
     var now = (new Date()).getTime();
-    if(now - changeTime > 5 * 60 * 1000){
+    if(now - changeTime > overtimes){
       return true;
     }
     return false;
@@ -548,8 +549,9 @@ function seqManager(dbcfg){
       _getDoc(dbcfg, "seqnums", null, function(dt, err){
         if(err){
           console.log("clearDelDocSeq get err!");
+          console.log(err);
         }
-        if(dt){
+        if(!err){
           var gd = dt.responseJSON;//JSON.parse(dt.responseText);
           clearDelDocFun(gd, 0, []);
         }else{
@@ -653,6 +655,9 @@ function seqManager(dbcfg){
   };
   ret.overChangeTime = function(){
     return overChangeTime();
+  };
+  ret.setChangeTime = function(){
+    setChangeTime();
   };
   clearDelDocSeq();
   return ret;
@@ -821,6 +826,49 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
     }
   });
 }
+function syncOrderOneByOne(orders, idx, dbcfg, m, s, seqHandle, then){
+  if(orders.length != 0 && idx < orders.length){
+    sync1OrderChange(dbcfg, orders[idx], m, s, function(od, sd){
+      addRevFun(sd,seqHandle);
+      syncOrderOneByOne(orders, idx + 1, dbcfg, m, s, seqHandle, then);
+    });
+  }else{
+    if(typeof(then) === "function"){
+      then();
+    }
+  }
+}
+
+function _scanOrders(seqHandle, dbcfg, m, s){
+    'use strict';
+    console.log("_scanOrders dbname:" + dbcfg["bid"]);
+  if(seqHandle.overChangeTime()){
+    console.log("_scanOrders overTime!!!");
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
+        console.log("_scanOrders data ++++++++++++++++");
+        console.log(data);
+        if(data){
+          scanDBCounter.success++;
+          var orders = data.rows.filter(function(item){
+                            return item.value.length === 1;
+                        }).map(function (o) {
+                            return o.doc;
+                        });
+          syncOrderOneByOne(orders, 0, dbcfg, m, s, seqHandle, function(){
+            seqHandle.setChangeTime();
+            setTimeout(function(){
+              _scanOrders(seqHandle, dbcfg, m, s);
+            }, 10 * 1000);
+          });
+        }
+    });
+  }else{
+    console.log("_scanOrders not overTime!!!");
+    setTimeout(function(){
+      _scanOrders(seqHandle, dbcfg, m, s);
+    }, 10 * 1000);
+  }
+}
 function doComplex(seqHandle, dbcfg, cfg, retry_day){
   //console.log("INFO: resolveConflicts");
   resolveConflicts(dbcfg, function (e){
@@ -951,6 +999,7 @@ function businessRunner(dbcfg, cfg, retry_day){
   var seqHandle = seqManager(dbcfg);
   feedManager(seqHandle, dbcfg, cfg, m, s);
   doComplex(seqHandle, dbcfg, cfg, retry_day);
+  _scanOrders(seqHandle, dbcfg, m, s)
 }
 function multipleAjax(retry_day, cfg){
   var ret = {};
