@@ -554,9 +554,6 @@ function seqManager(dbcfg){
             seqnums.forEach(function(itm, idx){
               if(itm.id == ch.id){
                 if(compareSeq(ch, itm)){
-                  console.log("itm +++++++++++++++++++++++");
-                  console.log(itm);
-                  //seqnums.splice(idx, 1);
                   seqtmp.push(ch);
                 }else{
                   seqtmp.push(itm);
@@ -593,8 +590,7 @@ function seqManager(dbcfg){
           gd.seqnums = seqtmp2;
           console.log("save seqnums ++++++++++++++++++++++");
           console.log("seqnums:" + seqtmp2.length);
-          console.log(seqtmp2)
-          console.log(seqtmp);
+          console.log("businessid:" + dbcfg["bid"]);
           _updateSeqnums(dbcfg, gd, function(od, dt){
             if(dt){
                afterSave();
@@ -660,7 +656,14 @@ function getLeastSeqnum(dbcfg, then){
     });
   //});
 }
-
+function addRevFun(sd, seqHandle){
+  if(sd){
+    var d = sd.responseJSON;
+    if(d.ok == true){
+      seqHandle.addRev(d.rev);
+    }
+  }
+}
 function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
   console.log("processChanges countChanges:" + countChanges);
   _getDoc(dbcfg, ch.id, 'revs_info=true', function(dt, err){
@@ -690,9 +693,7 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
           }else{
             ch.state = false;
           }
-          if(sd && sd.ok == true){
-            seqHandle.addRev(sd.rev);
-          }
+          addRevFun(sd,seqHandle);
           ch.doc = undefined;
           seqHandle.saveSeqnums(ch);
           if(typeof(then) == 'function'){
@@ -708,9 +709,7 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
             }else{
               ch.state = false;
             }
-            if(sd && sd.ok == true){
-              seqHandle.addRev(sd.rev);
-            }
+            addRevFun(sd,seqHandle);
             ch.doc = undefined;
             seqHandle.saveSeqnums(ch);
             if(typeof(then) == 'function'){
@@ -734,9 +733,7 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
                 }else{
                   ch.state = false;
                 }
-                if(sd && sd.ok == true){
-                  seqHandle.addRev(sd.rev);
-                }
+                addRevFun(sd,seqHandle);
                 ch.doc = undefined;
                 seqHandle.saveSeqnums(ch);
                 if(typeof(then) == 'function'){
@@ -774,9 +771,7 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
                 }else{
                   ch.state = false;
                 }
-                if(sd && sd.ok == true){
-                  seqHandle.addRev(sd.rev);
-                }
+                addRevFun(sd,seqHandle);
                 ch.doc = null;
                 seqHandle.saveSeqnums(ch);
                 if(typeof(then) == 'function'){
@@ -834,7 +829,7 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
 function changes(countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
   console.log("changes countChanges:" + countChanges);
   if(seqHandle.checkRev(ch.changes)){
-    console.log("+++ It is KC modifier, ingnor! +++");
+    console.log("++++++++++++ It is KC modifier, ingnor! ++++++++++++");
     if(typeof(then) == "function"){
       then();
     }
@@ -843,10 +838,10 @@ function changes(countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
   processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then);
 }
 
-function feedManager(dbcfg, cfg, seqHandle, m, s){
+function feedManager(seqHandle, dbcfg, cfg, m, s){
   if(seqHandle.getSaveState()){
     setTimeout(function(){
-      feedManager(dbcfg, cfg, seqHandle, m, s);
+      feedManager(seqHandle, dbcfg, cfg, m, s);
     },1000);
     return;
   }
@@ -901,9 +896,10 @@ function feedManager(dbcfg, cfg, seqHandle, m, s){
           console.log("no changes any more, feed should been resumed!");
           setTimeout(function(){
             console.log("start feed again ++++");
+            console.log("businesses ID:" + dbcfg["bid"]);
             setPaused(false);
             feed  = null;
-            feedManager(dbcfg, cfg, seqHandle, m, s)
+            feedManager(seqHandle, dbcfg, cfg, m, s)
           }, 500);
         }
         console.log("feed resume:" + countChanges);
@@ -915,12 +911,11 @@ function feedManager(dbcfg, cfg, seqHandle, m, s){
 }
 
 function businessRunner(dbcfg, cfg, retry_day){
-  
   var m = modifyOC(cfg),
       s = submitOC(cfg);
   var seqHandle = seqManager(dbcfg);
-  feedManager(dbcfg, cfg, seqHandle, m, s);
-  doComplex(seqHandle, dbcfg, cfg, retry_day);
+  feedManager(seqHandle, dbcfg, cfg, m, s);
+  //doComplex(seqHandle, dbcfg, cfg, retry_day);
 }
 function multipleAjax(retry_day, cfg){
   var ret = {};
