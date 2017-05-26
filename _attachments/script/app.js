@@ -480,7 +480,7 @@ function deleteOrders(dbcfg, data, then){
             });
           }
         }
-        console.log("INFO: Delete ", tmp);
+        //console.log("INFO: Delete ", tmp);
         return post("/" + dbcfg["bid"] + "/_bulk_docs", dbcfg["udb"], dbcfg["pdb"], tmp, then);
         /*
         return dbh.bulk(tmp, {method: "post"}, function(err, data){
@@ -512,14 +512,6 @@ function compact(dbcfg, then){
         then(data, err);
     }
   });
-  /*
-  console.log(dbcfg["bid"]);
-  return dbh.compact(dbcfg["bid"], ["kc"], function(err, data){
-    console.log(err);
-    console.log(data);
-     then(data, err);
-  });
-  */
 }
 function setupShovel(cfg, then) {
   'use strict';
@@ -910,7 +902,7 @@ function retryFailed(seqHandle, dbcfg, retry_day, cfg, then) {
       }),
       m = window.modifyOC(cfg),
       s = window.submitOC(cfg); 
-      console.log("retryFailed+++++++++++++++++++++++++++++++");
+      //console.log("retryFailed+++++++++++++++++++++++++++++++");
       window.syncOC(dbcfg, m, s, tmp.filter(function(item){
           return item.value.length === 1;
       }).map(function (o) {

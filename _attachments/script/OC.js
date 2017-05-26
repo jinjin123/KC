@@ -43,7 +43,7 @@ function submitOCN(url, user, password, order, then){
 }
 
 function modifyOCN(url, user, password, order, then){
-  console.log("modifyOCN +++");
+  console.log("+++++++++++++++++++++++++++++++++ modifyOCN +++++++++++++++++++++++++++++++++");
   var data = getUpdateObjNew(order.data);
   url = checkUrl(url) + data.data.id + "?_format=api_json";
   var options = {
@@ -398,6 +398,17 @@ function seqManager(dbcfg){
   var seqsSaveArr = [];
   var revs = [];
   var saveFlag = false;
+  var changeTime = (new Date()).getTime();
+  function setChangeTime(){
+    changeTime = (new Date()).getTime();
+  }
+  function overChangeTime(){
+    var now = (new Date()).getTime();
+    if(now - changeTime > 5 * 60 * 1000){
+      return true;
+    }
+    return false;
+  }
   ret.addRev = function(rev){
     revs.push(rev);
   };
@@ -502,6 +513,17 @@ function seqManager(dbcfg){
           newArrTmp.push(newArr[i]);
         }
       }
+      newArrTmp.forEach(function(itm, idx){
+        if(itm.first  == true && idx > 0){
+          newArrTmp.splice(0, idx);
+          return;
+        }
+      });
+      //console.log("clearDelDocFun save seqnums +++++");
+      //console.log("seqnums:" + newArrTmp.length);
+      //console.log("businessid:" + dbcfg["bid"]);
+      //console.log(newArr);
+      //console.log(newArrTmp);
       gd.seqnums = newArrTmp;
       _updateSeqnums(dbcfg, gd, function(od, dt){
         if(dt){
@@ -524,7 +546,9 @@ function seqManager(dbcfg){
     if(getSaveState() == false){
       startSave();
       _getDoc(dbcfg, "seqnums", null, function(dt, err){
-        console.log("clearDelDocSeq get err!");
+        if(err){
+          console.log("clearDelDocSeq get err!");
+        }
         if(dt){
           var gd = dt.responseJSON;//JSON.parse(dt.responseText);
           clearDelDocFun(gd, 0, []);
@@ -585,13 +609,17 @@ function seqManager(dbcfg){
           seqtmp2.forEach(function(itm, idx){
             if(itm.first  == true && idx > 0){
               seqtmp2.splice(0, idx);
+              return;
             }
           });
           gd.seqnums = seqtmp2;
-          console.log("save seqnums ++++++++++++++++++++++");
-          console.log("seqnums:" + seqtmp2.length);
-          console.log("businessid:" + dbcfg["bid"]);
+          //console.log("save seqnums ++++++++++++++++++++++");
+          //console.log("seqnums:" + seqtmp2.length);
+          //console.log("businessid:" + dbcfg["bid"]);
+          //console.log(seqtmp);
+          //console.log(seqtmp2);
           _updateSeqnums(dbcfg, gd, function(od, dt){
+            setChangeTime();
             if(dt){
                afterSave();
               setSeqsSaveArrAfterSave(true)
@@ -622,6 +650,9 @@ function seqManager(dbcfg){
     }else{
       //console.log("prepareing to save seq!!!!!!!!!!!!!!!!");
     }
+  };
+  ret.overChangeTime = function(){
+    return overChangeTime();
   };
   clearDelDocSeq();
   return ret;
@@ -665,9 +696,9 @@ function addRevFun(sd, seqHandle){
   }
 }
 function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
-  console.log("processChanges countChanges:" + countChanges);
+  //console.log("processChanges countChanges:" + countChanges);
   _getDoc(dbcfg, ch.id, 'revs_info=true', function(dt, err){
-    console.log("processChanges _getDoc version countChanges:" + countChanges);
+    //console.log("processChanges _getDoc version countChanges:" + countChanges);
     if (err){
       console.log("changes get revs error +++");
       console.log(err)
@@ -679,11 +710,11 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
       var idx = newD._revs_info.length >= 2 ? 1: 0;
       var rev = newD._revs_info[idx];
       
-      console.log("get rev in changes function +++");
+      //console.log("get rev in changes function +++");
       //console.log(newD._revs_info)
-      console.log("latest rev:" + ch.changes[0].rev)
-      console.log("rev:" + rev.rev);
-      console.log("id:" + ch.id)
+      //console.log("latest rev:" + ch.changes[0].rev)
+      //console.log("rev:" + rev.rev);
+      //console.log("id:" + ch.id)
       
       if(idx == 0 || newD.submited == null){
         sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
@@ -720,9 +751,9 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
         }
         console.log("_getDoc rev+++");
         _getDoc(dbcfg, ch.id, "rev=" + rev.rev, function(dt, err){  
-          console.log("get previouce data in changes function +++")
-          console.log("rev:" + rev);
-          console.log("id:" + ch.id);
+          //console.log("get previouce data in changes function +++")
+          //console.log("rev:" + rev);
+          //console.log("id:" + ch.id);
           if (err){
             console.log("get previouce data failly!")
             if(err.status == 404){
@@ -791,10 +822,10 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
   });
 }
 function doComplex(seqHandle, dbcfg, cfg, retry_day){
-  console.log("INFO: resolveConflicts");
+  //console.log("INFO: resolveConflicts");
   resolveConflicts(dbcfg, function (e){
       if(e){
-          console.log("resolveConflicts: ", e);
+        console.log("resolveConflicts: ", e);
       }
       cfg.historical_data_span = cfg.historical_data_span ? cfg.historical_data_span : 1;
       ordersBefore(dbcfg, cfg.historical_data_span, function(data, err){
@@ -802,17 +833,17 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
               console.log("ordersBefore: ", err);
           }
           data = data ? data : [];
-          console.log("INFO: deleteOrders");
+          //console.log("INFO: deleteOrders");
           deleteOrders(dbcfg, data, function(data,error){
               if(error) {
                   console.log("deleteOrders: ", error)
               }
-              console.log("INFO: compact");
+              //console.log("INFO: compact");
               compact(dbcfg, function (d, e){
                   if(e){
                       console.log("compact: ", e);
                   }
-                  console.log("INFO: retryFailed");
+                  //console.log("INFO: retryFailed");
                   retryFailed(seqHandle, dbcfg, retry_day, cfg, function(data, err){
                       if(err){
                           console.log("retryFailed: ", err);
@@ -829,6 +860,10 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
 function changes(countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
   console.log("changes countChanges:" + countChanges);
   if(seqHandle.checkRev(ch.changes)){
+    ch.changes = undefined;
+    ch.state = true;
+    ch.doc = undefined;
+    seqHandle.saveSeqnums(ch);
     console.log("++++++++++++ It is KC modifier, ingnor! ++++++++++++");
     if(typeof(then) == "function"){
       then();
@@ -915,7 +950,7 @@ function businessRunner(dbcfg, cfg, retry_day){
       s = submitOC(cfg);
   var seqHandle = seqManager(dbcfg);
   feedManager(seqHandle, dbcfg, cfg, m, s);
-  //doComplex(seqHandle, dbcfg, cfg, retry_day);
+  doComplex(seqHandle, dbcfg, cfg, retry_day);
 }
 function multipleAjax(retry_day, cfg){
   var ret = {};
@@ -923,9 +958,7 @@ function multipleAjax(retry_day, cfg){
   var maxSingle = 100;
   var activingAll = 0;
   var activingSingle = 0;
-  //var scaning = false;
   var businesses = [];
-  //var businessesHandle = businessRunners(cfg, retry_day);
   function addBusiness(bs){
     bs.forEach(function(itm, idx){
       if(businesses[itm.bid] == null){
@@ -936,9 +969,7 @@ function multipleAjax(retry_day, cfg){
           activing: false,
           scaning: false
         };
-        //console.log(itm);
         businessRunner(itm, cfg, retry_day);
-        //businessesHandle.addBusiness(itm);
       }
     });
   }
