@@ -354,6 +354,12 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
             //od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDBChange(dbcfg, od, xthen);
+          }else if(data1.status == 0){
+             od.oc_msg = {};
+            od.oc_msg.responseText = data1.responseText;
+            od.oc_msg.status =  100;
+            od.oc_msg.statusText = data1.statusText;
+            window._updateDBChange(dbcfg, od, xthen);
           }else{
             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
             //unknown error code has return data1
@@ -399,7 +405,7 @@ function seqManager(dbcfg){
   var revs = [];
   var saveFlag = false;
   var changeTime = (new Date()).getTime();
-  var overtimes = 2 * 60 * 1000;
+  var overtimes = 90 * 1000;
   function setChangeTime(){
     changeTime = (new Date()).getTime();
   }
@@ -844,7 +850,7 @@ function _scanOrders(seqHandle, dbcfg, m, s){
     console.log("_scanOrders dbname:" + dbcfg["bid"]);
   if(seqHandle.overChangeTime()){
     console.log("_scanOrders overTime!!!");
-    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,3]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
+    get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
         console.log("_scanOrders data ++++++++++++++++");
         console.log(data);
         if(data){
@@ -887,10 +893,10 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
                   console.log("deleteOrders: ", error)
               }
               //console.log("INFO: compact");
-              compact(dbcfg, function (d, e){
-                  if(e){
-                      console.log("compact: ", e);
-                  }
+              //compact(dbcfg, function (d, e){
+              //    if(e){
+              //        console.log("compact: ", e);
+              //    }
                   //console.log("INFO: retryFailed");
                   retryFailed(seqHandle, dbcfg, retry_day, cfg, function(data, err){
                       if(err){
@@ -900,7 +906,7 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
                         doComplex(seqHandle, dbcfg, cfg, retry_day);
                       }, 10 * 1000);
                   });
-              });                        
+              //});                        
           });
       });
   });
@@ -992,7 +998,31 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
     feed.follow();
   });
 }
-
+function setRevs_limit(dbcfg, then){
+  console.log("setRevs_limit +++");
+  var url = "/" + dbcfg["bid"] + "/_revs_limit"
+  var options = {
+    contentType : 'application/json',
+    url:url,
+    method: "put",
+    data:"5",
+    dataType:"json",
+    processData: false,
+    cache: false,
+    crossDomain: true,
+    verbose: true,
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader ("Authorization", "Basic " + btoa("admin" + ":" + "thomas123"));
+    }
+  };
+  ajaxN(options, function(d, err){
+    console.log(d)
+    console.log(err);
+    if(typeof(then) == "function"){
+      then();
+    }
+  });
+}
 function businessRunner(dbcfg, cfg, retry_day){
   var m = modifyOC(cfg),
       s = submitOC(cfg);
@@ -1018,7 +1048,9 @@ function multipleAjax(retry_day, cfg){
           activing: false,
           scaning: false
         };
-        businessRunner(itm, cfg, retry_day);
+        //setRevs_limit(itm, function(){
+          businessRunner(itm, cfg, retry_day);
+        //});
       }
     });
   }

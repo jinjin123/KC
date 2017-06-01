@@ -13,6 +13,8 @@ function ajaxCfg(url, method, user, password, d, then){
   var data = ""
   if(d && (typeof(d) == 'object' || typeof(d) == 'array')){
     data = JSON.stringify(d);
+  }else if(typeof(d) == "string"){
+    data = d;
   }
   var options = {
     contentType : 'application/json',
@@ -677,4 +679,18 @@ function Deploy_deleteOrders11(){
         alert("获取订单失败！");
       }
     });
+}
+
+function setRevs_limit(dbcfg, then){
+  console.log("setRevs_limit +++");
+  var url = "/" + dbcfg["bid"] + "/_revs_limit";
+  ajaxCfg(url, "put", CouchdbUser(), CouchdbPassWD(), "5", function(d, err){
+    if(d.status == 200 || d.status == 202 || d.status == 201){
+      if(typeof(then) == "function"){
+        then();
+      }
+    }else{
+      alert("设置_revs_limit 失败！");
+    }
+  });
 }

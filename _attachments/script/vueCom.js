@@ -259,19 +259,21 @@ var demo = new Vue({
             createDB(_this.bid, function(dt){
               if(dt.status == 200 || dt.status == 201 || dt.status == 202){
                 console.log("INFO: start add user!");
-                addUser(_this, function(d){
-                  console.log(d);
-                  if(d == true){
-                    addDBcfgUser(_this, function(dt, dbcfg){
-                      console.log(dt);
+                setRevs_limit(_this, function(){
+                  addUser(_this, function(d){
+                    console.log(d);
+                    if(d == true){
+                      addDBcfgUser(_this, function(dt, dbcfg){
+                        console.log(dt);
+                        _this.addDisabled = false;
+                        if(dt == true){
+                          _this.gridData = dbcfg;
+                        }
+                      });
+                    }else{
                       _this.addDisabled = false;
-                      if(dt == true){
-                        _this.gridData = dbcfg;
-                      }
-                    });
-                  }else{
-                    _this.addDisabled = false;
-                  }
+                    }
+                  });
                 });
               }else{
                 _this.addDisabled = false;
