@@ -883,7 +883,8 @@ function retryFailed(seqHandle, dbcfg, retry_day, cfg, then) {
 
   //window.$.getJSON("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[\""+yesterday+"\",2,3]&endkey=[\""+today+"\",9999,100]&include_docs=true&conflicts=true", function(result){
   
-  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[2,2,"+yYMD+","+yHMS+"]&endkey=[9999,100,"+tYMD+","+tHMS+"]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result){
+  get("/" + dbcfg["bid"] + "/_design/kc/_view/timestatus?startkey=[2,2,"+yYMD+","+yHMS+"]&endkey=[9999,100,"+tYMD+","+tHMS+"]&include_docs=true&conflicts=true", dbcfg["udb"], dbcfg["pdb"], function(result, err){
+    if(!err){
       var tmp = result.rows.filter(function (o) {
           if (!o.doc.deleted) {
               if (o.doc.data) {
@@ -912,6 +913,9 @@ function retryFailed(seqHandle, dbcfg, retry_day, cfg, then) {
               then("success");
           }
       });
+    }else {
+      console.log("retryFailed get timestatus view failly!");
+    }
   }).fail(function(xhr, err){
       if(typeof(then) === "function") {
           then(null, err);

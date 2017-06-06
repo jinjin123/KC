@@ -177,8 +177,8 @@ function _updateSeqnums(dbcfg, seqnums, then){
        xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
     }
   };
-  ajaxN(options, function(dt){
-    then(null, dt);
+  ajaxN(options, function(dt, err){
+    then(dt, err);
   });
 }
 function _updateDBChange(dbcfg, order, then){
@@ -199,8 +199,8 @@ function _updateDBChange(dbcfg, order, then){
        xhr.setRequestHeader ("Authorization", "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"]));
     }
   };
-  ajaxN(options, function(dt){
-    then(order, dt);
+  ajaxN(options, function(dt, err){
+    then(order, dt, err);
   });
 }
 function sync1OrderChange(dbcfg, od, m, s, xthen){
@@ -218,6 +218,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
               od.oc_msg = {};
               od.oc_msg.status =  data.status;
               od.oc_msg.statusText = data.statusText;
+              od.AfterSubmittingTime = getTime();
               //window.updateOrders(dbcfg, od, xthen);
               window._updateDBChange(dbcfg, od, xthen);
             } else if (data.status == 404) {
@@ -260,6 +261,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
                       od.oc_msg.responseText = data1.responseText;
                       od.oc_msg.status =  data1.status;
                       od.oc_msg.statusText = data1.statusText;
+                      od.AfterSubmittingTime = getTime();
                       //od.oc_msg = data1;
                       window._updateDBChange(dbcfg, od, xthen);
                     }else if(data1.status == 429){ //请求太多
@@ -268,6 +270,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
                       od.oc_msg.responseText = data1.responseText;
                       od.oc_msg.status =  data1.status;
                       od.oc_msg.statusText = data1.statusText;
+                      od.AfterSubmittingTime = getTime();
                       //od.oc_msg = data1;
                       //od.submited = true;
                       //window.updateOrdersSubmited(dbcfg, od, xthen);
@@ -282,6 +285,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
                       od.oc_msg.responseText = data1.responseText;
                       od.oc_msg.status =  data1.status;
                       od.oc_msg.statusText = data1.statusText;
+                      od.AfterSubmittingTime = getTime();
                       //od.oc_msg = data1;
                       //window.updateOrders(dbcfg, od, xthen);
                       window._updateDBChange(dbcfg, od, xthen);
@@ -342,6 +346,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
             od.oc_msg = {};
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
+            od.AfterSubmittingTime = getTime();
             //od.oc_msg = data1;
             window._updateDBChange(dbcfg, od, xthen);
           }else if(data1.status == 429){ //请求太多
@@ -351,14 +356,16 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
             od.oc_msg = {};
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
+            od.AfterSubmittingTime = getTime();
             //od.submited = true;
             //window.updateOrdersSubmited(dbcfg, od, xthen);
             window._updateDBChange(dbcfg, od, xthen);
           }else if(data1.status == 0){
-             od.oc_msg = {};
+            od.oc_msg = {};
+            od.sync_status = 100;
             od.oc_msg.responseText = data1.responseText;
-            od.oc_msg.status =  100;
             od.oc_msg.statusText = data1.statusText;
+            od.AfterSubmittingTime = getTime();
             window._updateDBChange(dbcfg, od, xthen);
           }else{
             od.sync_status = (data1.status !== undefined && data1.status !== null) ? data1.status : 2; //unknown error code has return data
@@ -370,6 +377,7 @@ function sync1OrderChange(dbcfg, od, m, s, xthen){
             od.oc_msg.responseText = data1.responseText;
             od.oc_msg.status =  data1.status;
             od.oc_msg.statusText = data1.statusText;
+            od.AfterSubmittingTime = getTime();
             window._updateDBChange(dbcfg, od, xthen);
           }
         }else{
@@ -461,6 +469,7 @@ function seqManager(dbcfg){
     seqsArr.forEach(function(itm, idx){
       seqsSaveArr.push(itm);
     });
+    seqsSaveArr.sort(compareSeq);
     seqsArr = [];
   }
   function setSeqsSaveArrAfterSave(s){
@@ -469,11 +478,11 @@ function seqManager(dbcfg){
     }else{
       //seqsArr.concat(seqsSaveArr);
       var seqsArrTmp = [];
-      seqsArr.forEach(function(itm, idx){
+      seqsArr.forEach(function(itm){
         var exsit = false;
-        seqsSaveArr.forEach(function(itme, idxx){
+        seqsSaveArr.forEach(function(itme){
           if(itm.id == ch.id){
-            if(compareSeq(itm, itmm)){
+            if(compareSeq(itm, itme)){
               seqsArrTmp.push(itm);
             }else{
 
@@ -488,6 +497,7 @@ function seqManager(dbcfg){
       });
       seqsArr = [];
       seqsArr = seqsArrTmp;
+      seqsArr.sort(compareSeq);
     }
   }
   function clearDelDocFun(gd, idx, newArr){
@@ -498,6 +508,8 @@ function seqManager(dbcfg){
         return;
       }
       _getDoc(dbcfg, seqnums[idx].id, null, function(d,err){
+        //console.log(d);
+        //console.log(err);
         if(err && err.status == 404){
           seqnums[idx].state = true;
         }
@@ -505,6 +517,8 @@ function seqManager(dbcfg){
         clearDelDocFun(gd, idx + 1, newArr);
       });
     }else{
+      //console.log("clearDelDocFun start to save!!!");
+      //console.log(newArr);
       setSeqsSaveArrBeforSave();
       newArr.sort(compareSeq);
       var newArrTmp = [];
@@ -532,13 +546,13 @@ function seqManager(dbcfg){
       //console.log(newArr);
       //console.log(newArrTmp);
       gd.seqnums = newArrTmp;
-      _updateSeqnums(dbcfg, gd, function(od, dt){
-        if(dt){
+      _updateSeqnums(dbcfg, gd, function(dt, err){
+        if(!err){
           setSeqsSaveArrAfterSave(true);
           afterSave();
           setTimeout(function(){
             clearDelDocSeq();
-          }, 1000 * 60 * 10);
+          }, 1000 * 10);
         }else{
           console.log("clearDelDocFun insert error!");
           console.log(err.status);
@@ -550,7 +564,9 @@ function seqManager(dbcfg){
   }
   //删除已经被删除的doc的seq
   function clearDelDocSeq(){
+    //console.log("clearDelDocSeq +++++++++++++++++++++++++++++");
     if(getSaveState() == false){
+      console.log("clearDelDocSeq startSave");
       startSave();
       _getDoc(dbcfg, "seqnums", null, function(dt, err){
         if(err){
@@ -576,19 +592,28 @@ function seqManager(dbcfg){
   function _saveSeqnums(){
     console.log("_saveSeqnums _getDoc!");
     _getDoc(dbcfg, "seqnums", null, function(dt, err){
-      if(dt){
-          var gd = JSON.parse(dt.responseText);
+      if(!err){
+          //var gd = JSON.parse(dt.responseText);
+
+          var gd  = dt.responseJSON;
           var seqnums = gd.seqnums;
-          var seqtmp = [];
+          //console.log("seqnums get data: ++++++++++++++++++++++++++++++++");
+          //console.log(seqnums);
+          //var seqtmp = [];
           setSeqsSaveArrBeforSave();
+          
           seqsSaveArr.forEach(function(ch){
             var exsit = false;
+            //var _ch;
             seqnums.forEach(function(itm, idx){
               if(itm.id == ch.id){
                 if(compareSeq(ch, itm)){
-                  seqtmp.push(ch);
+                  //seqtmp.push(ch);
+                  seqnums.splice(idx, 1, ch);
+                  //_ch = ch;
                 }else{
-                  seqtmp.push(itm);
+                  //seqtmp.push(itm);
+                  //_ch = itm;
                   //exsit = true;
                 }
                 exsit = true;
@@ -596,22 +621,25 @@ function seqManager(dbcfg){
               }
             });
             if(!exsit){
-              seqtmp.push(ch);
+              seqnums.push(ch);
             }
           });
           var seqtmp2 = [];
-          seqtmp.sort(compareSeq);
-          
-          for(var i in seqtmp){
-            if(seqtmp[i].state == true){
-              if(i < seqtmp.length - 1){
+          //console.log("seqtmp ++++++++++++++++++++++++++++++++++++++++");
+          //console.log(seqnums);
+          seqnums.sort(compareSeq);
+          //console.log("seqtmp after sort +++++++++++++++++++++++++++++++++++");
+          //console.log(seqnums);
+          for(var i in seqnums){
+            if(seqnums[i].state == true){
+              if(i < seqnums.length - 1){
                 //seqtmp.splice(i, 1);
               }else{
-                seqtmp2.push(seqtmp[i]);
+                seqtmp2.push(seqnums[i]);
               }
             }else{
               //break;
-              seqtmp2.push(seqtmp[i]);
+              seqtmp2.push(seqnums[i]);
             }
           }
           seqtmp2.forEach(function(itm, idx){
@@ -624,12 +652,12 @@ function seqManager(dbcfg){
           //console.log("save seqnums ++++++++++++++++++++++");
           //console.log("seqnums:" + seqtmp2.length);
           //console.log("businessid:" + dbcfg["bid"]);
-          //console.log(seqtmp);
+          //console.log(seqnums);
           //console.log(seqtmp2);
-          _updateSeqnums(dbcfg, gd, function(od, dt){
+          _updateSeqnums(dbcfg, gd, function(dt, err){
             setChangeTime();
-            if(dt){
-               afterSave();
+            if(!err){
+              afterSave();
               setSeqsSaveArrAfterSave(true)
             }else{
               console.log("_saveSeqnums seqnums insert error!");
@@ -640,6 +668,8 @@ function seqManager(dbcfg){
             }
           });
       }else{
+        console.log("_saveSeqnums get seqnums failly!");
+        console.log(err);
         _saveSeqnums();
         setTimeout(function(){
           clearDelDocSeq();
@@ -654,7 +684,9 @@ function seqManager(dbcfg){
     addSeq(ch);
     if(getSaveState() == false){
       startSave();
-      _saveSeqnums();
+      setTimeout(function(){
+        _saveSeqnums();
+      }, 10 * 1000);
     }else{
       //console.log("prepareing to save seq!!!!!!!!!!!!!!!!");
     }
@@ -676,16 +708,19 @@ function getLeastSeqnum(dbcfg, then){
         console.log("getLeastSeqnum get a error!");
         console.log(err);
         if(err.status == 404){
-          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(od, dt){
-            if(!dt){
+          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(dt, err){
+            if(err){
               console.log("create seqnums failly!");
               console.log(err);
             }
+            console.log(dt);
+            then(since);
           });
         }
-        since = 0;
+        //since = 0;
       }else{
-        var gd = JSON.parse(dt.responseText);
+        //var gd = JSON.parse(dt.responseText);
+        var gd = dt.responseJSON;
         var seqnums = gd.seqnums
         seqnums.sort(compareSeq);
         if( seqnums.length > 0 && seqnums[0].seq){
@@ -693,13 +728,14 @@ function getLeastSeqnum(dbcfg, then){
         }else{
           since = 0;
         }
+        then(since);
       }
-      then(since);
+     
     });
   //});
 }
 function addRevFun(sd, seqHandle){
-  if(sd){
+  if(sd && sd.responseJSON){
     var d = sd.responseJSON;
     if(d.ok == true){
       seqHandle.addRev(d.rev);
@@ -728,7 +764,7 @@ function processChanges(countChanges, dbcfg, m, s, seqHandle, ch, then){
       //console.log("id:" + ch.id)
       
       if(idx == 0 || newD.submited == null){
-        sync1OrderChange(dbcfg, newD, m, s, function(od, sd){
+        sync1OrderChange(dbcfg, newD, m, s, function(od, sd, err){
           ch.changes = undefined;
           if(od.sync_status == 1){
             ch.state = true;
@@ -846,9 +882,10 @@ function syncOrderOneByOne(orders, idx, dbcfg, m, s, seqHandle, then){
 }
 
 function _scanOrders(seqHandle, dbcfg, m, s){
-    'use strict';
-    console.log("_scanOrders dbname:" + dbcfg["bid"]);
-  if(seqHandle.overChangeTime()){
+  'use strict';
+  console.log("_scanOrders dbname:" + dbcfg["bid"]);
+  try {
+    if(seqHandle.overChangeTime()){
     console.log("_scanOrders overTime!!!");
     get("/" + dbcfg["bid"] + "/_design/kc/_view/status?startkey=[0,2]&endkey=[0,100]&include_docs=true&conflicts=true&limit=100", dbcfg["udb"], dbcfg["pdb"], function(data, err) {
         console.log("_scanOrders data ++++++++++++++++");
@@ -874,9 +911,15 @@ function _scanOrders(seqHandle, dbcfg, m, s){
       _scanOrders(seqHandle, dbcfg, m, s);
     }, 10 * 1000);
   }
+}catch(e){
+    setTimeout(function(){
+      _scanOrders(seqHandle, dbcfg, m, s);
+    }, 10 * 1000);
+}
+  
 }
 function doComplex(seqHandle, dbcfg, cfg, retry_day){
-  //console.log("INFO: resolveConflicts");
+  console.log("INFO: resolveConflicts");
   resolveConflicts(dbcfg, function (e){
       if(e){
         console.log("resolveConflicts: ", e);
@@ -887,7 +930,7 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
               console.log("ordersBefore: ", err);
           }
           data = data ? data : [];
-          //console.log("INFO: deleteOrders");
+          console.log("INFO: deleteOrders");
           deleteOrders(dbcfg, data, function(data,error){
               if(error) {
                   console.log("deleteOrders: ", error)
@@ -897,7 +940,7 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
               //    if(e){
               //        console.log("compact: ", e);
               //    }
-                  //console.log("INFO: retryFailed");
+                  console.log("INFO: retryFailed");
                   retryFailed(seqHandle, dbcfg, retry_day, cfg, function(data, err){
                       if(err){
                           console.log("retryFailed: ", err);
@@ -937,7 +980,7 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
   var firstCh = false;
   var feedPause = false;
   var countChanges = 0;
-  var maxChangesNum = 20;
+  var maxChangesNum = 100000;
   function addCount(){
     countChanges += 1;
     console.log("------countChanges:" + countChanges);
@@ -975,7 +1018,12 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
         ch.first = true;
         firstCh = true;
       }
+      if(dbcfg["bid"] == "b726"){
+        //feed.pause();
+        //return;
+      }
       console.log("change:" + dbcfg["bid"]);
+      console.log(getNum(ch.seq));
       if(addCount()){
         console.log("mutiple changes, feed should been paused!");
         feed.pause();
@@ -996,31 +1044,6 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
     });
     feed.headers = {"Authorization": "Basic " + btoa(dbcfg["udb"] + ":" + dbcfg["pdb"])};
     feed.follow();
-  });
-}
-function setRevs_limit(dbcfg, then){
-  console.log("setRevs_limit +++");
-  var url = "/" + dbcfg["bid"] + "/_revs_limit"
-  var options = {
-    contentType : 'application/json',
-    url:url,
-    method: "put",
-    data:"5",
-    dataType:"json",
-    processData: false,
-    cache: false,
-    crossDomain: true,
-    verbose: true,
-    beforeSend: function (xhr) {
-      xhr.setRequestHeader ("Authorization", "Basic " + btoa("admin" + ":" + "thomas123"));
-    }
-  };
-  ajaxN(options, function(d, err){
-    console.log(d)
-    console.log(err);
-    if(typeof(then) == "function"){
-      then();
-    }
   });
 }
 function businessRunner(dbcfg, cfg, retry_day){

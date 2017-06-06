@@ -259,7 +259,7 @@ var demo = new Vue({
             createDB(_this.bid, function(dt){
               if(dt.status == 200 || dt.status == 201 || dt.status == 202){
                 console.log("INFO: start add user!");
-                setRevs_limit(_this, function(){
+                //setRevs_limit(_this, function(){
                   addUser(_this, function(d){
                     console.log(d);
                     if(d == true){
@@ -274,7 +274,7 @@ var demo = new Vue({
                       _this.addDisabled = false;
                     }
                   });
-                });
+                //});
               }else{
                 _this.addDisabled = false;
               }

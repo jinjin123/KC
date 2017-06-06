@@ -83,18 +83,22 @@ var demo = new Vue({
         createStoreDB(stCfg,function(d){
           console.log("createStoreDB ++++++++++++++++++");
           console.log(d);
-          addCouchdbUser( _this.bid, _this.pdb, [], function(_d){
-            var names = [];
-            names.push(_this.bid);
-            addUserForDB(_this.bid, names, [], function(__d){
-              console.log(__d);
-              addReplication(stCfg, function(_d){
-                _this.addDisabled = false;
-                console.log("addReplication ++++++++++++++++++=");
-                console.log(_d);
+          //setRevs_limit(stCfg, function(){
+            addUser(_this, function(d){
+              addCouchdbUser( _this.bid, _this.pdb, [], function(_d){
+                var names = [];
+                names.push(_this.bid);
+                addUserForDB(_this.bid, names, [], function(__d){
+                  console.log(__d);
+                  addReplication(stCfg, function(_d){
+                    _this.addDisabled = false;
+                    console.log("addReplication ++++++++++++++++++=");
+                    console.log(_d);
+                  });
+                });
               });
             });
-          });
+          //});
         });
       });
       setLocal("storeCfg", stCfg, function(_d){
