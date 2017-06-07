@@ -412,6 +412,7 @@ function seqManager(dbcfg){
   var seqsSaveArr = [];
   var revs = [];
   var saveFlag = false;
+  var firstGetSeqnums = true; //如果是第一次获取，_changes since 值是第一个，如果不是则_changes since值为最后一个
   var changeTime = (new Date()).getTime();
   var overtimes = 90 * 1000;
   function setChangeTime(){
@@ -552,7 +553,7 @@ function seqManager(dbcfg){
           afterSave();
           setTimeout(function(){
             clearDelDocSeq();
-          }, 1000 * 10);
+          }, 1000 * 60 * 10);
         }else{
           console.log("clearDelDocFun insert error!");
           console.log(err.status);
@@ -670,10 +671,21 @@ function seqManager(dbcfg){
       }else{
         console.log("_saveSeqnums get seqnums failly!");
         console.log(err);
-        _saveSeqnums();
-        setTimeout(function(){
-          clearDelDocSeq();
-        }, 30000);
+        if(err.status == 404){
+          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(dt, err){
+            if(err){
+              console.log("create seqnums failly!");
+              console.log(err);
+            }
+            setTimeout(function(){
+              _saveSeqnums();
+            }, 10 * 1000);
+          });
+        }else{
+          setTimeout(function(){
+            _saveSeqnums();
+          }, 10 * 1000);
+        }
       }
     });
   }
@@ -696,6 +708,53 @@ function seqManager(dbcfg){
   };
   ret.setChangeTime = function(){
     setChangeTime();
+  };
+  ret.getLeastSeqnum = function(dbcfg, then){
+      _getDoc(dbcfg, "seqnums", null, function(dt, err) {
+      var since = 0;
+      if(err){
+        console.log("getLeastSeqnum get a error!");
+        console.log(err);
+        if(err.status == 404){
+          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(dt, err){
+            if(err){
+              console.log("create seqnums failly!");
+              console.log(err);
+            }
+            console.log(dt);
+            firstGetSeqnums = false;
+            then(since);
+          });
+        }else{
+          since = 'now';
+          firstGetSeqnums = false;
+          then(since);
+        }
+        //since = 0;
+      }else{
+        //var gd = JSON.parse(dt.responseText);
+        var gd = dt.responseJSON;
+        var seqnums = gd.seqnums
+        seqnums.sort(compareSeq);
+        if(firstGetSeqnums == true){
+          firstGetSeqnums = false;
+          var _seq = seqnums[0];
+          if( _seq && _seq.seq){
+            since = _seq.seq;
+          }else{
+            since = 'now';
+          }
+        }else{
+          var _seq = seqnums.pop();
+          if( _seq && _seq.seq){
+            since = _seq.seq;
+          }else{
+            since = 'now';
+          }
+        }
+        then(since);
+      }
+    });
   };
   clearDelDocSeq();
   return ret;
@@ -933,7 +992,7 @@ function doComplex(seqHandle, dbcfg, cfg, retry_day){
           console.log("INFO: deleteOrders");
           deleteOrders(dbcfg, data, function(data,error){
               if(error) {
-                  console.log("deleteOrders: ", error)
+                console.log("deleteOrders: ", error)
               }
               //console.log("INFO: compact");
               //compact(dbcfg, function (d, e){
@@ -980,7 +1039,7 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
   var firstCh = false;
   var feedPause = false;
   var countChanges = 0;
-  var maxChangesNum = 100000;
+  var maxChangesNum = 20;
   function addCount(){
     countChanges += 1;
     console.log("------countChanges:" + countChanges);
@@ -1006,7 +1065,7 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
   function setPaused(s){
     feedPause = s;
   }
-  getLeastSeqnum(dbcfg, function(since){
+  seqHandle.getLeastSeqnum(dbcfg, function(since){
     console.log(dbcfg);
     console.log("since:" + since);
     var feed = null;
