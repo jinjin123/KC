@@ -118,6 +118,7 @@ if(cluster.isMaster) {
     });      
     cluster.fork();
 } else {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
     process.on('uncaughtException', function(err) {
         console.log(err);
         process.exit(100);
@@ -134,8 +135,10 @@ if(cluster.isMaster) {
             }
             win = window;
             window.WebSocket = require('ws');
-            window.nano = require('nano');
-            window.cookie = require('cookie');
+            window.ssl_root_ca = require('ssl-root-cas');
+            //window.nano = require('nano');
+            window.cradle = require('cradle');
+            //window.cookie = require('cookie');
             setTimeout(function(){
                 var tmp = window.getAllURLs(), i;
                 for(i in tmp) {

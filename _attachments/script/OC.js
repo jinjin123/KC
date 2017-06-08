@@ -752,6 +752,7 @@ function seqManager(dbcfg){
             since = 'now';
           }
         }
+        since = 'now';
         then(since);
       }
     });
@@ -1069,9 +1070,18 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
     console.log(dbcfg);
     console.log("since:" + since);
     var feed = null;
-    var dbh = nano({url:'http://couchdb-cloud.sparkpad-dev.com/' + dbcfg["bid"]});
-    feed = dbh.follow({since: since, filter: "kc/data", include_docs: true});
-
+    //var dbh = nano({url:'https://couchdb-cloud.sparkpad-dev.com/' + dbcfg["bid"], strictSSL:true});
+    //feed = dbh.follow({since: since, filter: "kc/data", include_docs: true});
+    var connection = new(cradle.Connection)('https://couchdb-cloud.sparkpad-dev.com', {strictSSL:false, port: 443}, {
+      auth: { username: 'sye', password: 'sye123456' }
+    });
+    var db = connection.database(dbcfg['bid']);
+    var feed = db.changes({ since: since, filter: "kc/data", include_docs: true });
+    /*
+    feed.on('change', function (change) {
+        console.log(change);
+    });
+    */
     feed.on('change', function (ch) {
       if(firstCh == false){
         ch.first = true;
