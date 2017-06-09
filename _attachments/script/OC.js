@@ -752,7 +752,7 @@ function seqManager(dbcfg){
             since = 'now';
           }
         }
-        since = 'now';
+        //since = 'now';
         then(since);
       }
     });
@@ -761,39 +761,6 @@ function seqManager(dbcfg){
   return ret;
 }
 
-function getLeastSeqnum(dbcfg, then){
-    _getDoc(dbcfg, "seqnums", null, function(dt, err) {
-      var since = 0;
-      if(err){
-        console.log("getLeastSeqnum get a error!");
-        console.log(err);
-        if(err.status == 404){
-          _updateSeqnums(dbcfg, { _id: 'seqnums', seqnums: []}, function(dt, err){
-            if(err){
-              console.log("create seqnums failly!");
-              console.log(err);
-            }
-            console.log(dt);
-            then(since);
-          });
-        }
-        //since = 0;
-      }else{
-        //var gd = JSON.parse(dt.responseText);
-        var gd = dt.responseJSON;
-        var seqnums = gd.seqnums
-        seqnums.sort(compareSeq);
-        if( seqnums.length > 0 && seqnums[0].seq){
-          since = seqnums[0].seq;
-        }else{
-          since = 0;
-        }
-        then(since);
-      }
-     
-    });
-  //});
-}
 function addRevFun(sd, seqHandle){
   if(sd && sd.responseJSON){
     var d = sd.responseJSON;
@@ -1040,7 +1007,7 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
   var firstCh = false;
   var feedPause = false;
   var countChanges = 0;
-  var maxChangesNum = 20;
+  var maxChangesNum = 20000;
   function addCount(){
     countChanges += 1;
     console.log("------countChanges:" + countChanges);
@@ -1073,7 +1040,7 @@ function feedManager(seqHandle, dbcfg, cfg, m, s){
     //var dbh = nano({url:'https://couchdb-cloud.sparkpad-dev.com/' + dbcfg["bid"], strictSSL:true});
     //feed = dbh.follow({since: since, filter: "kc/data", include_docs: true});
     var connection = new(cradle.Connection)('https://couchdb-cloud.sparkpad-dev.com', {strictSSL:false, port: 443}, {
-      auth: { username: 'sye', password: 'sye123456' }
+      auth: { username: dbcfg["udb"], password: dbcfg["pdb"] }
     });
     var db = connection.database(dbcfg['bid']);
     var feed = db.changes({ since: since, filter: "kc/data", include_docs: true });
