@@ -10,6 +10,8 @@ eslint:
     - npm install -g eslint
     # Configure ESLint (will read your .eslintrc file)
     - eslint --init
-    # Run ESLint
+    # install @ljharb/eslint-config module
+    - npm install --save @ljharb/eslint-config
+    # Run ESLinit
     - eslint "."
 
