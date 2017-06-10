@@ -11,11 +11,11 @@ eslint:
     # install npm 
     - npm init
     # Configure ESLint (will read your .eslintrc file)
-    - eslint --init
-    # install eslint-config-defaults
-    - npm install --save eslint-config-defaults
+    - eslint --init  
     # install @ljharb/eslint-config module
     - npm install --save @ljharb/eslint-config
+    # install @ljharb/eslint-config module's dependency eslint@^3.15.0 module
+    - npm install --save eslint@^3.15.0
     # Run ESLinit
     - eslint "."
 
