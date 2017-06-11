@@ -1,3 +1,10 @@
+build:
+  script:
+  - maven ... &> maven.log
+  artifacts:
+    paths:
+    - maven.log
+    when: always
 image: node:latest
 
 stages:
@@ -16,4 +23,5 @@ eslint:
     - npm install -g @ljharb/eslint-config
     # Run ESLinit
     - eslint "."
+
 
