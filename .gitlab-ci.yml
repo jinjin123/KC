@@ -20,5 +20,5 @@ eslint:
     - npm install --save @ljharb/eslint-config
     
     # Run ESLinit
-    - eslint "."
+    - eslint "./"
 
