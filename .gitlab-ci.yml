@@ -1,12 +1,3 @@
-build:
-  script:
-  - maven ... &> maven.log
-  artifacts:
-    paths:
-    - maven.log
-    when: always
-image: node:latest
-
 stages:
   - lint
 
