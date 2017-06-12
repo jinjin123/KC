@@ -1,9 +1,15 @@
-concurrent = 1
+concurrent = 0
+
 [[runners]]
-  name = "ruby-2.1-docker-ssh"
+  name = "ruby-2.1-docker"
   url = "https://CI/"
   token = "TOKEN"
   limit = 0
-  executor = "docker-ssh"
+  output_limit = 1000
+  executor = "docker"
   builds_dir = ""
+  shell = ""
+  environment = ["ENV=value", "LC_ALL=en_US.UTF-8"]
+  disable_verbose = false
+
 
