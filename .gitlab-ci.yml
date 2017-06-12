@@ -1,0 +1,18 @@
+stages:
+  - lint
+
+eslint:
+  stage: lint
+  script:
+    # Install ESLint in this docker container
+    - npm install -g eslint
+    # Configure ESLint (will read your .eslintrc file)
+    - eslint --init  
+    # install @ljharb/eslint-config module's dependency eslint@^3.15.0 module
+    - npm install -g eslint@^3.15.0
+    # install @ljharb/eslint-config module
+    - npm install -g @ljharb/eslint-config
+    # Run ESLinit
+    - eslint "."
+
+

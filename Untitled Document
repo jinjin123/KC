@@ -1,0 +1,8 @@
+[[runners]]
+  name = "ruby-2.1-docker-ssh"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 0
+  executor = "docker-ssh"
+  builds_dir = ""
+
