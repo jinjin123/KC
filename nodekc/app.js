@@ -17,6 +17,84 @@ var ssl_root_ca = require('ssl-root-cas');
 var cradle = require('cradle');
 var request = require('request');
 var Mustache = require('mustache');
+
+function getTimeCount(t){
+  if(t == null || t == "") return null;
+  return Math.floor((new Date(t)).getTime()/1000);
+}
+
+var OCStatesNum = {
+  draft: 0,
+  fulfillment: 1,
+  wait_for_buyer_to_pay: 2,
+  buyer_has_paid: 3,
+  preparing: 4,
+  ready: 5,
+  delivering: 6,
+  completed: 7,
+  canceled: 8,
+  returned: 9
+};
+
+function getNameByNum(s){
+  if(typeof(s) === 'string'){
+    for(var i in OCStatesNum){
+      if(i == s){
+        return i;
+      }
+    }
+  }
+  for(var i in OCStatesNum){
+    if(OCStatesNum[i] == s){
+      return i;
+    }
+  }
+  return "draft";
+}
+
+function getNumByName(n){
+  var partern = /^[0-9]+$/;
+  if(partern.test(n)){
+    return n
+  }else{
+    if(n < OCStatesNum.draft || n > OCStatesNum.returned){
+      n = 0;
+    }
+    return OCStatesNum[n];
+  }
+}
+
+//新的堂食，自助POS订单数据结构。
+function getUpdateObjNew(order){
+  var d = {},
+      f = [
+        "placed",
+        "completed",
+        "field_canceled",
+        "field_delivering_time",
+        "field_delivered",
+        "field_payment_received",
+        "field_returned",
+        "state"
+      ];
+  for (var i in f) {
+    var k = f[i];
+    var v = order[k];
+    if(v !== undefined && v !== null && v != "") {
+      if(k == "state"){
+        v = getNameByNum(v);
+      }
+      d[k] = v;
+    }
+  }
+  var obj = {
+    data: {
+      id: order.uuid,
+      attributes: d
+    }
+  }
+  return obj;
+}
 function getTime(d, fmt){
     d = d ? d : (new Date());
     return Math.round(d.getTime()/1000);
@@ -115,26 +193,7 @@ function getOCQueryURL(cfg, orderid){
     return cfg['oc-queryUrl'] + orderid;
 }
 
-function run(retry_day, then){
-    console.log('run...')
-    loadConfig(function(cfg){
-        setLocal("configuration", cfg, function(data, err){
-            if(typeof(then) === 'function') {
-                then(cfg, function(){
-                    //receiveOC(cfg);
-                    //scanOrders(retry_day, cfg);
-                    multipleAjax(retry_day, cfg).run();
-                    //scanDatabase(retry_day, cfg);
-                })    
-            } else {
-                //receiveOC(cfg);
-                //scanOrders(retry_day, cfg);
-                multipleAjax(retry_day, cfg).run();
-                //scanDatabase(retry_day, cfg);                  
-            }
-        });
-    });
-}
+
 /*
 function getAllURLs(){
   var result = [];
@@ -553,14 +612,7 @@ function _submitOCN(url, user, pass, order, then){
     },
     callback: function (err, response, body) {
       console.log("_submitOCN +++++++++++++++++++++++++++++++++++++");
-      //console.log(err);
-      //console.log(response.statusCode);
-      //console.log(body);
-      //if(err){
-        then(err, response, body);
-      //}else{
-      //  then(err, response, body);
-      //}
+      then(err, response, body);
     }
   });
 }
@@ -582,16 +634,6 @@ function _modifyOCN(url, user, pass, data, then){
     },
     callback: function (err, response, body) {
       then(err, response, body);
-      //console.log(err);
-      //console.log(response);
-      //console.log(body)
-      /*
-      if(err){
-        then(body, err);
-      }else{
-        then(body, null);
-      }
-      */
     }
   });
   
@@ -1242,23 +1284,7 @@ function addRevFun(sd, seqHandle){
     }
   }
 }
-function processChanges(db, countChanges, dbcfg, m, s, seqHandle, ch, then){
-  var newD = ch.doc;
-  sync1OrderChange(db, dbcfg, newD, m, s, function(od, sd, err){
-    ch.changes = undefined;
-    if(od.sync_status == 1){
-      ch.state = true;
-    }else{
-      ch.state = false;
-    }
-    addRevFun(sd,seqHandle);
-    ch.doc = undefined;
-    seqHandle.saveSeqnums(ch);
-    if(typeof(then) == 'function'){
-      then();
-    }
-  });
-}
+
 function syncOrderOneByOne(db, orders, idx, dbcfg, m, s, seqHandle, then){
   if(orders.length != 0 && idx < orders.length){
     sync1OrderChange(db, dbcfg, orders[idx], m, s, function(od, sd){
@@ -1349,6 +1375,23 @@ function doComplex(db, seqHandle, m, s, dbcfg, cfg, retry_day){
               //});                        
           });
       });
+  });
+}
+function processChanges(db, countChanges, dbcfg, m, s, seqHandle, ch, then){
+  var newD = ch.doc;
+  sync1OrderChange(db, dbcfg, newD, m, s, function(od, sd, err){
+    ch.changes = undefined;
+    if(od.sync_status == 1){
+      ch.state = true;
+    }else{
+      ch.state = false;
+    }
+    addRevFun(sd,seqHandle);
+    ch.doc = undefined;
+    seqHandle.saveSeqnums(ch);
+    if(typeof(then) == 'function'){
+      then();
+    }
   });
 }
 function changes(db, countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
@@ -1516,82 +1559,25 @@ function multipleAjax(retry_day, cfg){
   return ret;
 }
 
-function getTimeCount(t){
-  if(t == null || t == "") return null;
-  return Math.floor((new Date(t)).getTime()/1000);
+
+function run(retry_day, then){
+    console.log('run...')
+    loadConfig(function(cfg){
+        setLocal("configuration", cfg, function(data, err){
+            if(typeof(then) === 'function') {
+                then(cfg, function(){
+                    //receiveOC(cfg);
+                    //scanOrders(retry_day, cfg);
+                    multipleAjax(retry_day, cfg).run();
+                    //scanDatabase(retry_day, cfg);
+                })    
+            } else {
+                //receiveOC(cfg);
+                //scanOrders(retry_day, cfg);
+                multipleAjax(retry_day, cfg).run();
+                //scanDatabase(retry_day, cfg);                  
+            }
+        });
+    });
 }
-
-var OCStatesNum = {
-  draft: 0,
-  fulfillment: 1,
-  wait_for_buyer_to_pay: 2,
-  buyer_has_paid: 3,
-  preparing: 4,
-  ready: 5,
-  delivering: 6,
-  completed: 7,
-  canceled: 8,
-  returned: 9
-};
-
-function getNameByNum(s){
-  if(typeof(s) === 'string'){
-    for(var i in OCStatesNum){
-      if(i == s){
-        return i;
-      }
-    }
-  }
-  for(var i in OCStatesNum){
-    if(OCStatesNum[i] == s){
-      return i;
-    }
-  }
-  return "draft";
-}
-
-function getNumByName(n){
-  var partern = /^[0-9]+$/;
-  if(partern.test(n)){
-    return n
-  }else{
-    if(n < OCStatesNum.draft || n > OCStatesNum.returned){
-      n = 0;
-    }
-    return OCStatesNum[n];
-  }
-}
-
-//新的堂食，自助POS订单数据结构。
-function getUpdateObjNew(order){
-  var d = {},
-      f = [
-        "placed",
-        "completed",
-        "field_canceled",
-        "field_delivering_time",
-        "field_delivered",
-        "field_payment_received",
-        "field_returned",
-        "state"
-      ];
-  for (var i in f) {
-    var k = f[i];
-    var v = order[k];
-    if(v !== undefined && v !== null && v != "") {
-      if(k == "state"){
-        v = getNameByNum(v);
-      }
-      d[k] = v;
-    }
-  }
-  var obj = {
-    data: {
-      id: order.uuid,
-      attributes: d
-    }
-  }
-  return obj;
-}
-
 module.exports=run;
