@@ -93,7 +93,8 @@ function configMQ(settings, then) {
 var URL = require('url');
 var request = require('request');
 var express = require("express");
-var jsdom = require("jsdom");
+var run = require("./app");
+//var jsdom = require("jsdom");
 var baseurl;
 if(!baseurl) {
     var args = process.argv.splice(2);  
@@ -123,23 +124,26 @@ if(cluster.isMaster) {
         console.log(err);
         process.exit(100);
     })
-    jsdom.env({
-        url: getKCURL(baseurl, "index.html"),
-        scripts: [],
-        strictSSL:false,
-        virtualConsole: jsdom.createVirtualConsole().sendTo(console),
-        done: function (err, window) {
-            if (!window){
-                console.log('Can not load KC from ' + getKCURL(baseurl, "index.html"));
-                process.exit(100);
-            }
-            win = window;
-            window.WebSocket = require('ws');
-            window.ssl_root_ca = require('ssl-root-cas');
+    //jsdom.env({
+    //   url: getKCURL(baseurl, "index.html"),
+    //    scripts: [],
+    //    strictSSL:false,
+    //    virtualConsole: jsdom.createVirtualConsole().sendTo(console),
+    //    done: function (err, window) {
+    //        if (!window){
+    //            console.log('Can not load KC from ' + getKCURL(baseurl, "index.html"));
+    //            process.exit(100);
+    //        }
+    //        win = window;
+    //        window.WebSocket = require('ws');
+    //        window.ssl_root_ca = require('ssl-root-cas');
             //window.nano = require('nano');
-            window.cradle = require('cradle');
+    //        window.cradle = require('cradle');
+    //        window.request = require('request');
+     //       window.Mustache = require('mustache');
             //window.cookie = require('cookie');
             setTimeout(function(){
+                /*
                 var tmp = window.getAllURLs(), i;
                 for(i in tmp) {
                     var x = tmp[i];
@@ -161,6 +165,7 @@ if(cluster.isMaster) {
                         });
                     }
                 }
+                */
                 app.get("/refresh", function(req, res){
                     console.log("refresh");
                     res.status(200).end();
@@ -185,7 +190,7 @@ if(cluster.isMaster) {
                 });
                 */
                 app.listen(3000, function(){
-                    window.run(1, function(cfg, then){
+                    run(1, function(cfg, then){
                         /*
                         configMQ(window.getMQConfig(cfg),function(err, httpResponse, body) {
                             if (err) {
@@ -202,13 +207,13 @@ if(cluster.isMaster) {
                     console.log("running on port 3000") 
                 });            
             }, 1000);
-        },
-        features: {
-            FetchExternalResources: ["script", "frame", "iframe", "link", "img"],
-            ProcessExternalResources: ["script"],
-            SkipExternalResources: false
-        }
-    });
+        //},
+        //features: {
+        //    FetchExternalResources: ["script", "frame", "iframe", "link", "img"],
+        //    ProcessExternalResources: ["script"],
+        //    SkipExternalResources: false
+        //}
+    //});
 
     var app = module.exports = express();
 
