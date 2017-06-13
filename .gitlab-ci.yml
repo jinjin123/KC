@@ -4,6 +4,8 @@ stages:
 eslint:
   stage: lint
   script:
+    # docker --help just for test
+    # - docker --help
     # Install ESLint in this docker container
     - npm install -g eslint
     # Configure ESLint (will read your .eslintrc file)
