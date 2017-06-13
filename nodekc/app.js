@@ -64,10 +64,12 @@ function get(url, user, pass, then){
     },
     auth: auth,
     callback: function (err, response, body) {
-      console.log(err);
-      console.log(typeof(body));
-      console.log(body)
+      //console.log(err);
+      //console.log(typeof(body));
+      //console.log(body)
       if(err){
+        console.log(err);
+        console.log(body);
         then(body, err);
       }else{
         then(body, null);
@@ -215,8 +217,8 @@ function loadConfig(fun) {
     }
     //get("kc.config.json",);
     get("code/_design/kc/kc.config.json", null, null,function (result) {
-        console.log("loading get json +++++++++++");
-        console.log(result);
+        //console.log("loading get json +++++++++++");
+        //console.log(result);
         result.baseurl = 'https' + '//' + 'couchdb-cloud.sparkpad-dev.com' +'/code/_design/kc';
         result.hostname = 'couchdb-cloud.sparkpad-dev.com';
         if (typeof (fun) === "function") {
@@ -249,12 +251,10 @@ function orders(db, dbcfg, query, fun){
 function deleteOrders(db, dbcfg, data, then){
     if(data){
         //data = JSON.parse(data);
-        var tmp = {
-            "docs":[]
-        };
+        var tmp = [];
         for(var i in data.rows){
           for(var j in data.rows[i].value.rev){
-            tmp.docs.push({
+            tmp.push({
               "_id": data.rows[i].id,
               "_rev": data.rows[i].value.rev[j],
               "data": {
@@ -264,13 +264,6 @@ function deleteOrders(db, dbcfg, data, then){
             });
           }
         }
-        //console.log("INFO: Delete ", tmp);
-        //return post("/" + dbcfg["bid"] + "/_bulk_docs", dbcfg["udb"], dbcfg["pdb"], tmp, then);
-        /*
-        return db.bulk(tmp, {method: "post"}, function(err, data){
-          then(data, err);
-        })
-        */
         return db.save(tmp, function (err, res) {
             // Handle response
             then(data, err);
@@ -481,7 +474,7 @@ function resolveConflicts(db, dbcfg, xthen) {
     });
 }
 
-function retryFailed(db, seqHandle, dbcfg, retry_day, cfg, then) {
+function retryFailed(db, seqHandle, m, s, dbcfg, retry_day, cfg, then) {
   'use strict';
   var today = new Date();
   var yesterday = new Date();
@@ -499,9 +492,12 @@ function retryFailed(db, seqHandle, dbcfg, retry_day, cfg, then) {
     endkey: [9999, 100, tYMD ,tHMS],
     include_docs:true,
     conflicts:true,
-    limit:1
-  }
+    limit:100
+  };
   db.view('kc/timestatus', opts , function (err, result) {
+    //console.log("err++++++++++++++++++++++++++");
+    //console.log(err);
+    //console.log(result);
     if(!err){
       var tmp = result.rows.filter(function (o) {
           if (!o.doc.deleted) {
@@ -518,9 +514,9 @@ function retryFailed(db, seqHandle, dbcfg, retry_day, cfg, then) {
               }
           }
           return false;
-      }),
-      m = modifyOC(cfg),
-      s = submitOC(cfg); 
+      });
+      //m = modifyOC(cfg),
+      //s = submitOC(cfg); 
       //console.log("retryFailed+++++++++++++++++++++++++++++++");
       syncOCChange(db, seqHandle, dbcfg, m, s, tmp.filter(function(item){
           return item.value.length === 1;
@@ -540,8 +536,10 @@ function retryFailed(db, seqHandle, dbcfg, retry_day, cfg, then) {
 function _submitOCN(url, user, pass, order, then){
   console.log("submitOCN +++");
   var data = order.data;
+  //console.log(data);
+  //console.log(order);
   data.state = getNameByNum(data.state);
- request({
+  request({
     method: 'post',
     uri: url,
     body: JSON.stringify(data),
@@ -763,7 +761,7 @@ function sync1OrderChange(db, dbcfg, od, m, s, xthen){
       });
     }else{
       od.BeforSubmittingTime = getTime();
-      s(dbcfg["uoc"], dbcfg["poc"], od, function (data1, err1) {
+      s(dbcfg["uoc"], dbcfg["poc"], od, function (err1, data1) {
         console.log("+++++++++++submit+++++++++++");
         if(data1){
           if(data1.statusCode == 200) {
@@ -787,7 +785,7 @@ function sync1OrderChange(db, dbcfg, od, m, s, xthen){
             od.sync_status = 500;//3;  //success
            
             od.oc_msg = {};
-            d.oc_msg.responseText = data1.body;
+            od.oc_msg.responseText = data1.body;
             od.oc_msg.status =  data1.statusCode;
             od.oc_msg.statusText = data1.statusMessage;
             od.AfterSubmittingTime = getTime();
@@ -851,6 +849,9 @@ function compareSeq(a,b){
   return getNum(a.seq) - getNum(b.seq);
 }
 
+// 该closure 处理couchdb changes 的seq值
+// 它会把最后的seq值保存起来，以确保KC重启后，
+// 会从该changes 开始获取changes。
 function seqManager(db, dbcfg){
   var ret = {};
   var seqsArr = [];
@@ -859,7 +860,7 @@ function seqManager(db, dbcfg){
   var saveFlag = false;
   var firstGetSeqnums = true; //如果是第一次获取，_changes since 值是第一个，如果不是则_changes since值为最后一个
   var changeTime = (new Date()).getTime();
-  var overtimes = 90 * 1000;
+  var overtimes = 70 * 1000;
   function setChangeTime(){
     changeTime = (new Date()).getTime();
   }
@@ -929,7 +930,7 @@ function seqManager(db, dbcfg){
       seqsArr.forEach(function(itm){
         var exsit = false;
         seqsSaveArr.forEach(function(itme){
-          if(itm.id == ch.id){
+          if(itm.id == itme.id){
             if(compareSeq(itm, itme)){
               seqsArrTmp.push(itm);
             }else{
@@ -948,6 +949,7 @@ function seqManager(db, dbcfg){
       seqsArr.sort(compareSeq);
     }
   }
+  /*
   function clearDelDocFun(gd, idx, newArr){
     var seqnums = gd.seqnums;
     if(idx < seqnums.length){
@@ -955,18 +957,22 @@ function seqManager(db, dbcfg){
         clearDelDocFun(gd, idx + 1, newArr);
         return;
       }
-      /*
-      _getDoc(dbcfg, seqnums[idx].id, null, function(d,err){
-        //console.log(d);
-        //console.log(err);
-        if(err && err.status == 404){
-          seqnums[idx].state = true;
-        }
-        newArr.push(seqnums[idx]);
-        clearDelDocFun(gd, idx + 1, newArr);
-      });
-      */
+      
+      //_getDoc(dbcfg, seqnums[idx].id, null, function(d,err){
+      //  //console.log(d);
+      //  //console.log(err);
+      //  if(err && err.status == 404){
+      //    seqnums[idx].state = true;
+      //  }
+      //  newArr.push(seqnums[idx]);
+      //  clearDelDocFun(gd, idx + 1, newArr);
+      //});
+      
+      console.log("seqnums[idx].id ++++++++++++");
+      console.log(seqnums[idx].id);
       __getDoc(db, seqnums[idx].id, null, function(err,d){
+        console.log("__getDoc +++++++++++++++++++++++++++");
+        console.log(seqnums[idx].id);
         //console.log(d);
         if(err){
           console.log(err);
@@ -978,8 +984,8 @@ function seqManager(db, dbcfg){
         clearDelDocFun(gd, idx + 1, newArr);
       });
     }else{
-      //console.log("clearDelDocFun start to save!!!");
-      //console.log(newArr);
+      console.log("clearDelDocFun start to save!!!");
+      console.log(newArr);
       setSeqsSaveArrBeforSave();
       newArr.sort(compareSeq);
       var newArrTmp = [];
@@ -1026,7 +1032,7 @@ function seqManager(db, dbcfg){
   }
   //删除已经被删除的doc的seq
   function clearDelDocSeq(){
-    //console.log("clearDelDocSeq +++++++++++++++++++++++++++++");
+    console.log("clearDelDocSeq +++++++++++++++++++++++++++++");
     if(getSaveState() == false){
       console.log("clearDelDocSeq startSave");
       startSave();
@@ -1051,6 +1057,7 @@ function seqManager(db, dbcfg){
       }, 1000 * 10);
     }
   }
+  */
   function _saveSeqnums(){
     console.log("_saveSeqnums _getDoc!");
     __getDoc(db, "seqnums", null, function(err, dt){
@@ -1087,11 +1094,15 @@ function seqManager(db, dbcfg){
             }
           });
           var seqtmp2 = [];
-          //console.log("seqtmp ++++++++++++++++++++++++++++++++++++++++");
-          //console.log(seqnums);
+          console.log("seqtmp ++++++++++++++++++++++++++++++++++++++++");
+          console.log(seqnums);
           seqnums.sort(compareSeq);
-          //console.log("seqtmp after sort +++++++++++++++++++++++++++++++++++");
-          //console.log(seqnums);
+          console.log("seqtmp after sort +++++++++++++++++++++++++++++++++++");
+          console.log(seqnums);
+          if(seqnums.length > 0){
+            seqtmp2.push(seqnums.pop());
+          }
+          /*
           for(var i in seqnums){
             if(seqnums[i].state == true){
               if(i < seqnums.length - 1){
@@ -1110,6 +1121,7 @@ function seqManager(db, dbcfg){
               return;
             }
           });
+          */
           gd.seqnums = seqtmp2;
           //console.log("save seqnums ++++++++++++++++++++++");
           //console.log("seqnums:" + seqtmp2.length);
@@ -1170,13 +1182,13 @@ function seqManager(db, dbcfg){
   ret.setChangeTime = function(){
     setChangeTime();
   };
-  ret.getLeastSeqnum = function(dbcfg, then, db){
+  ret.getLeastSeqnum = function(db, dbcfg, then){
     __getDoc(db, "seqnums", null, function(err, dt) {
       var since = 0;
       if(err){
         console.log("getLeastSeqnum get a error!");
         console.log(err);
-        if(err.headers.status == 404){
+        if(err.headers && err.headers.status == 404){
           __updateSeqnums(db, { _id: 'seqnums', seqnums: []}, function(err, dt){
             if(err){
               console.log("create seqnums failly!");
@@ -1218,7 +1230,7 @@ function seqManager(db, dbcfg){
       }
     });
   };
-  clearDelDocSeq();
+  //clearDelDocSeq();
   return ret;
 }
 
@@ -1302,7 +1314,7 @@ function _scanOrders(db, seqHandle, dbcfg, m, s){
 }
   
 }
-function doComplex(db, seqHandle, dbcfg, cfg, retry_day){
+function doComplex(db, seqHandle, m, s, dbcfg, cfg, retry_day){
   console.log("INFO: resolveConflicts");
   resolveConflicts(db, dbcfg, function (e){
       if(e){
@@ -1324,14 +1336,15 @@ function doComplex(db, seqHandle, dbcfg, cfg, retry_day){
               //    if(e){
               //        console.log("compact: ", e);
               //    }
+                  db.compact();
                   console.log("INFO: retryFailed");
-                  retryFailed(db, seqHandle, dbcfg, retry_day, cfg, function(data, err){
+                  retryFailed(db, seqHandle, m, s, dbcfg, retry_day, cfg, function(data, err){
                       if(err){
                           console.log("retryFailed: ", err);
                       }
                       setTimeout(function(){
-                        doComplex(db, seqHandle, dbcfg, cfg, retry_day);
-                      }, 10 * 1000);
+                        doComplex(db, seqHandle, m, s, dbcfg, cfg, retry_day);
+                      }, 30 * 1000);
                   });
               //});                        
           });
@@ -1355,9 +1368,9 @@ function changes(db, countChanges, dbcfg, cfg, seqHandle, m, s, ch, then){
 }
 
 function feedManager(db, seqHandle, dbcfg, cfg, m, s){
-  console.log("hello ++++++++++++++++++++++=")
+  //console.log("hello ++++++++++++++++++++++=")
   if(seqHandle.getSaveState()){
-    console.log("world ++++++++++++++++++++++=")
+    //console.log("world ++++++++++++++++++++++=")
     setTimeout(function(){
       feedManager(db, seqHandle, dbcfg, cfg, m, s);
     },1000);
@@ -1392,14 +1405,14 @@ function feedManager(db, seqHandle, dbcfg, cfg, m, s){
   function setPaused(s){
     feedPause = s;
   }
-  seqHandle.getLeastSeqnum(dbcfg, function(since){
+  seqHandle.getLeastSeqnum(db, dbcfg, function(since){
     console.log(dbcfg);
     console.log("since:" + since);
     var feed = null;
     //var dbh = nano({url:'https://couchdb-cloud.sparkpad-dev.com/' + dbcfg["bid"], strictSSL:true});
     //feed = dbh.follow({since: since, filter: "kc/data", include_docs: true});
     
-    var feed = db.changes({ since: since, filter: "kc/data", include_docs: true });
+    var feed = db.changes({ since: since, include_docs: true });
     /*
     feed.on('change', function (change) {
         console.log(change);
@@ -1409,10 +1422,7 @@ function feedManager(db, seqHandle, dbcfg, cfg, m, s){
       if(firstCh == false){
         ch.first = true;
         firstCh = true;
-      }
-      if(dbcfg["bid"] == "b726"){
-        //feed.pause();
-        //return;
+
       }
       console.log("change:" + dbcfg["bid"]);
       console.log(getNum(ch.seq));
@@ -1434,8 +1444,21 @@ function feedManager(db, seqHandle, dbcfg, cfg, m, s){
         console.log("feed resume:" + countChanges);
       });
     });
+    feed.filter = function(doc, req) {
+      // req.query is the parameters from the _changes request and also feed.query_params.
+      //console.log('+++++++++++++++++++++++Filtering for query: ' + JSON.stringify(req.query));
+      //console.log(doc);
+      if(doc == null){
+        console.log("doc is null ++++++++++++++++++++++++++++++++++++");
+      }
+      
+      if(doc.sync_status == 0 && doc.data && doc._deleted != true){
+        return true;
+      }
+      return false;
+    }
     feed.follow();
-  },db);
+  });
 }
 function businessRunner(dbcfg, cfg, retry_day){
   var m = modifyOC(cfg),
@@ -1446,8 +1469,8 @@ function businessRunner(dbcfg, cfg, retry_day){
   var db = connection.database(dbcfg['bid']);
   var seqHandle = seqManager(db, dbcfg);
   feedManager(db, seqHandle, dbcfg, cfg, m, s);
-  //doComplex(db, seqHandle, dbcfg, cfg, retry_day);
-  //_scanOrders(db,seqHandle, dbcfg, m, s)
+  doComplex(db, seqHandle, m, s, dbcfg, cfg, retry_day);
+  _scanOrders(db,seqHandle, dbcfg, m, s)
 }
 function multipleAjax(retry_day, cfg){
   var ret = {};
@@ -1474,11 +1497,11 @@ function multipleAjax(retry_day, cfg){
   }
   function scanBusiness(){
     getLocal("dbcfg1", function(data, err){
-      console.log("++++++++++++++++++++++++++++++++++++++++");
-      console.log(err);
-      console.log(data);
+      //console.log("++++++++++++++++++++++++++++++++++++++++");
+      //console.log(err);
+      //console.log(data);
       if(data){
-        console.log(data);
+        //console.log(data);
         addBusiness(data);
       }
       setTimeout(function(){
