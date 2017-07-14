@@ -15,7 +15,7 @@ app.get('/', function (req, res) {
     res.send('KC service now is running !');
 });
 
-var server = app.listen(config.port, function () {
+var server = app.listen(global.config.port, function () {
     var host = server.address().address;
     var port = server.address().port;
 

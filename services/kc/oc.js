@@ -58,26 +58,31 @@ oc.getState = function (state_n) {
 //==========获取订单=============
 oc.getOrder = function (uuid, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = config.oc.host + '/jsonapi/commerce_order/default/' + uuid;
+    var url = global.config.oc.host + '/jsonapi/commerce_order/default/' + uuid;
     var opts = {
         method: 'get',
         uri: url,
         json: true,
         headers:{'Content-Type':'application/json'},
-        auth: config.oc.auth
+        auth: global.config.oc.auth
     };
     request(opts,function (err, response, body) {
         console.log('getOrder:'+response.statusCode);
         if (err) {
             reData.message = err;
-        } else if(response.statusCode !== 200) {
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
+        } else if(response.statusCode === 200) {
+            if (!body.data) {
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+            } else {
+                reData.state   = true;
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+                reData.data    = body;
+            }
         } else {
-            reData.state   = true;
             reData.errCode = response.statusCode;
             reData.message = response.statusMessage;
-            reData.data    = body;
         }
         callback(reData.state, reData);
     })
@@ -86,28 +91,34 @@ oc.getOrder = function (uuid, callback) {
 //===========新建订单============
 oc.postOrder = function (order, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = config.oc.host + '/custom/entity/commerce_order';
+    var url = global.config.oc.host + '/custom/entity/commerce_order';
     order.state = oc.getState(order.state);
     var opts = {
         method: 'post',
         uri: url,
         body: JSON.stringify(order),
         headers:{'Content-Type':'application/json'},
-        auth: config.oc.auth
+        auth: global.config.oc.auth
     };
 
     request(opts, function (err, response, body) {
         console.log('postOrder:'+response.statusCode);
         if (err) {
             reData.message = err;
-        } else if (response.statusCode !== 200) {
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
+        } else if (response.statusCode === 200) {
+            body = JSON.parse(body);
+            if (!body.data) {
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+            } else {
+                reData.state   = true;
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+                reData.data    = body;
+            }
         } else {
-            reData.state   = true;
             reData.errCode = response.statusCode;
             reData.message = response.statusMessage;
-            reData.data    = body;
         }
         callback(reData.state, reData);
     });
@@ -116,29 +127,33 @@ oc.postOrder = function (order, callback) {
 //===========更新订单=============
 oc.patchOrder = function (uuid, order, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = config.oc.host + '/jsonapi/commerce_order/default/' + uuid + '?_format=api_json';
+    var url = global.config.oc.host + '/jsonapi/commerce_order/default/' + uuid + '?_format=api_json';
     var data = oc.getUpdate(order);
     var opts = {
         method: 'patch',
         uri: url,
         body: JSON.stringify(data),
         headers:{'Content-Type':'application/vnd.api+json'},
-        auth: config.oc.auth
+        auth: global.config.oc.auth
     };
     request(opts, function (err, response, body) {
-        // body = JSON.parse(body);
         console.log('patchOrder:'+response.statusCode);
-        // console.log('body:'+body);
         if (err) {
             reData.message = err;
-        } else if (response.statusCode === 500) {
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
+        } else if (response.statusCode === 200) {
+            body = JSON.parse(body);
+            if (!body.data) {
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+            } else {
+                reData.state   = true;
+                reData.errCode = response.statusCode;
+                reData.message = response.statusMessage;
+                reData.data    = body;
+            }
         } else {
-            reData.state   = true;
             reData.errCode = response.statusCode;
             reData.message = response.statusMessage;
-            reData.data    = body;
         }
         callback(reData.state, reData);
     });

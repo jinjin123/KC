@@ -20,5 +20,15 @@
     "cradle": "^0.7.1",
     "express": "^4.15.3",
     "pm2": "^2.5.0"
+  },
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "env": {
+      "node": true
+    },
+    "rules": {
+      "no-console": "off",
+      "no-unused-vars": "off"
+    }
   }
 }

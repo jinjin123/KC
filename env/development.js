@@ -1,13 +1,13 @@
 'use strict';
 
 var devConfig = {
-    port:3000,
+    port:3001,
     couchDb: {
-        host:'http://couchdb-cloud.sparkpad-dev.com',
-        port:80,
-        dbname:['b726','b734'],
-        dbuser:'sye',
-        dbpwd:'sye123456',
+        host:'http://localhost',
+        port:5984,
+        dbname:['order'],
+        dbuser:'admin',
+        dbpwd:'admin',
         since:'now',
         heartbeat:30 * 1000,
         inactivity_ms:86400 * 1000
