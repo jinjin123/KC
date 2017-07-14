@@ -9,6 +9,8 @@ if (environment === 'production') {
     global.config = require('./env/development');
 }
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 var kc = require('./services/kc');
 
 app.get('/', function (req, res) {
