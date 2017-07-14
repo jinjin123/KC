@@ -3,8 +3,8 @@
 var proConfig = {
     port:3333,
     couchDb: {
-        host:'http://couchdb-cloud.sparkpad-dev.com',
-        port:80,
+        host:'https://couchdb-cloud.sparkpad-dev.com',
+        port:443,
         dbname:['b726','b734'],
         dbuser:'sye',
         dbpwd:'sye123456',
