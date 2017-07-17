@@ -15,13 +15,14 @@ kc.syncOrder = function (dbname, order) {
     // 判断是否满足同步条件
     if (!order.sync_status || order.sync_status !== 1) {
         if (order.data) {
+            var last_state =  order.data.state;
             oc.getOrder(order.data.uuid, function (state) {
                 if (state === false) {
                     // 如果不存在就创建订单
                     oc.postOrder(order.data, function (state) {
                         var cdb = db.re_init(dbname);
                         if (state) {
-                            cdb.merge(order._id, {sync_status:1,last_state:order.data.state,sync_failed_num:0}, function (err, res) {
+                            cdb.merge(order._id, {sync_status:1,last_state:last_state,sync_failed_num:0}, function (err, res) {
                                 if (err) {
                                     console.log(err);
                                     console.log('new_order_merge_failed:'+order.data.uuid);
@@ -53,9 +54,7 @@ kc.syncOrder = function (dbname, order) {
                     oc.patchOrder(order.data.uuid, order.data, function (state) {
                         var cdb = db.re_init(dbname);
                         if (state) {
-                            console.log('update order ok :' + order.data.uuid);
-                            log.write('update order success : ', order.data.uuid);
-                            cdb.merge(order._id, {sync_status:1,last_state:order.data.state,sync_failed_num:0}, function (err, res) {
+                            cdb.merge(order._id, {sync_status:1,last_state:last_state,sync_failed_num:0}, function (err, res) {
                                 if (err) {
                                     console.log(err);
                                     console.log('update_order_merge_failed:'+order.data.uuid);
@@ -127,10 +126,15 @@ kc.chackOrder = function (cdb, dbname) {
 
             // 第一步拦截 等待同步中的订单完成
             if (!global.sync_ing[dbname]) {
-                var data = [];
-                res.forEach(function (res) {
-                    data.push(res);
-                });
+                var data = [], len;
+                if (res.length > 100) {
+                    len = 100;
+                } else {
+                    len = res.length;
+                }
+                for (var i = 0;i <= len;i++) {
+                    data.push(res[i].value);
+                }
                 kc.writeOc(cdb, dbname, 0, data)
             }
         }
@@ -150,7 +154,7 @@ kc.feed = function (cdb, dbname) {
     feed.filter = function(doc) {
         // req.query is the parameters from the _changes request and also feed.query_params.
 
-        if (doc.sync_status === 1 && doc.data && doc._deleted !== true && doc.last_state !== doc.data.state) {
+        if (doc.sync_status === 1 && doc.data && doc._deleted !== true && doc.last_state && doc.last_state !== doc.data.state) {
             return true;
         } else {
             return false;
@@ -164,7 +168,7 @@ kc.feed = function (cdb, dbname) {
 
         // 重新初始化DB
         var cdb = db.re_init(dbname);
-        if (order.last_state !== order.data.state) {
+        if (order.last_state && order.last_state !== order.data.state) {
             cdb.merge(order._id, {sync_status:0,last_state:order.data.state,sync_failed_num:0}, function (err) {
                 if (err) {
                     console.log(err);
@@ -173,7 +177,6 @@ kc.feed = function (cdb, dbname) {
                 }
             });
         }
-
 
     });
 
