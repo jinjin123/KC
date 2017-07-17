@@ -132,7 +132,7 @@ kc.chackOrder = function (cdb, dbname) {
                 } else {
                     len = res.length;
                 }
-                for (var i = 0;i <= len;i++) {
+                for (var i = 0;i < len;i++) {
                     data.push(res[i].value);
                 }
                 kc.writeOc(cdb, dbname, 0, data)
