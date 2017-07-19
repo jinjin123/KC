@@ -103,7 +103,7 @@ kc.writeOc = function (cdb, dbname, i, data) {
             console.log(date+ ' kc heartbeat to '+dbname);
             kc.chackOrder(cdb, dbname);
         }, 1000);
-    // 同步未结束 等待
+        // 同步未结束 等待
     } else {
         global.sync_ing[dbname] = 1;
         kc.syncOrder(dbname, data[i]);
@@ -122,18 +122,26 @@ kc.chackOrder = function (cdb, dbname) {
     cdb.view('kc2/sync_status', function (err, res) {
         if (err) {
             console.log('sync view err');
+            console.log(err);
+            setTimeout(function(){
+                var date = new Date();
+                console.log(date+ ' kc restart to '+dbname);
+                kc.chackOrder(cdb, dbname);
+            }, 10000);
         } else {
 
             // 第一步拦截 等待同步中的订单完成
             if (!global.sync_ing[dbname]) {
                 var data = [], len;
                 if (res.length > 100) {
-                    len = 100;
+                    len = 1000;
                 } else {
                     len = res.length;
                 }
                 for (var i = 0;i < len;i++) {
-                    data.push(res[i].value);
+                    if (res[i]) {
+                        data.push(res[i].value);
+                    }
                 }
                 kc.writeOc(cdb, dbname, 0, data)
             }
