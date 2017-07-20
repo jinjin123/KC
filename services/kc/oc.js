@@ -56,15 +56,15 @@ oc.getState = function (state_n) {
 };
 
 //==========获取订单=============
-oc.getOrder = function (uuid, callback) {
+oc.getOrder = function (auth, uuid, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = global.config.oc.host + '/jsonapi/commerce_order/default/' + uuid;
+    var url = global.config.oc_host + '/jsonapi/commerce_order/default/' + uuid;
     var opts = {
         method: 'get',
         uri: url,
         json: true,
         headers:{'Content-Type':'application/json'},
-        auth: global.config.oc.auth
+        auth: auth
     };
     request(opts,function (err, response, body) {
         console.log('getOrder:'+response.statusCode);
@@ -89,16 +89,16 @@ oc.getOrder = function (uuid, callback) {
 };
 
 //===========新建订单============
-oc.postOrder = function (order, callback) {
+oc.postOrder = function (auth, order, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = global.config.oc.host + '/custom/entity/commerce_order';
+    var url = global.config.oc_host + '/custom/entity/commerce_order';
     order.state = oc.getState(order.state);
     var opts = {
         method: 'post',
         uri: url,
         body: JSON.stringify(order),
         headers:{'Content-Type':'application/json'},
-        auth: global.config.oc.auth
+        auth: auth
     };
 
     request(opts, function (err, response, body) {
@@ -125,16 +125,16 @@ oc.postOrder = function (order, callback) {
 };
 
 //===========更新订单=============
-oc.patchOrder = function (uuid, order, callback) {
+oc.patchOrder = function (auth, uuid, order, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
-    var url = global.config.oc.host + '/jsonapi/commerce_order/default/' + uuid + '?_format=api_json';
+    var url = global.config.oc_host + '/jsonapi/commerce_order/default/' + uuid + '?_format=api_json';
     var data = oc.getUpdate(order);
     var opts = {
         method: 'patch',
         uri: url,
         body: JSON.stringify(data),
         headers:{'Content-Type':'application/vnd.api+json'},
-        auth: global.config.oc.auth
+        auth: auth
     };
     request(opts, function (err, response, body) {
         console.log('patchOrder:'+response.statusCode);

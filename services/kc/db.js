@@ -27,8 +27,8 @@ view.sync_failed = {
 };
 
 db.init = function (dbname) {
-    var connection = new(cradle.Connection)(global.config.couchDb.host, global.config.couchDb.port, {
-        auth: { username: global.config.couchDb.dbuser, password: global.config.couchDb.dbpwd }
+    var connection = new(cradle.Connection)(global.config.database.host, global.config.database.port, {
+        auth: { username: global.config.database.user, password: global.config.database.pwd }
     });
     var cdb =  connection.database(dbname);
 
@@ -41,62 +41,40 @@ db.init = function (dbname) {
 
 // 重新初始化
 db.re_init = function (dbname) {
-    var connection = new(cradle.Connection)(global.config.couchDb.host, global.config.couchDb.port, {
-        auth: { username: global.config.couchDb.dbuser, password: global.config.couchDb.dbpwd }
+    var connection = new(cradle.Connection)(global.config.database.host, global.config.database.port, {
+        auth: { username: global.config.database.user, password: global.config.database.pwd }
     });
     return connection.database(dbname);
 };
 
 db.get = function (url, callback) {
-    var reData = {state:false, errCode:500, message:"error", data:{}};
     var opts = {
         method: 'get',
-        uri: url,
+        uri: config.database.host + ':' + config.database.port + url,
         json: true,
         headers:{'Content-Type':'application/vnd.api+json'},
-        auth: global.config.oc.auth
-    };
-    request(opts, function (err, response, body) {
-        console.log('db.get:'+response.statusCode);
-        if (err) {
-            reData.message = err;
-        } else if(response.statusCode === 200) {
-            reData.state   = true;
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
-            reData.data    = body;
-        } else {
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
+        auth: {
+            'user': config.database.user,
+            'pass': config.database.pwd,
+            'sendImmediately': true
         }
-        callback(reData.state, reData);
-    })
+    };
+    request(opts, callback)
 };
 
 db.put = function (url, data, callback) {
-    var reData = {state:false, errCode:500, message:"error", data:{}};
     var opts = {
         method: 'put',
-        uri: url,
+        uri: config.database.host + ':' + config.database.port + url,
         body: JSON.stringify(data),
         headers:{'Content-Type':'application/vnd.api+json'},
-        auth: global.config.oc.auth
-    };
-    request(opts, function (err, response, body) {
-        console.log('db.put:'+response.statusCode);
-        if (err) {
-            reData.message = err;
-        } else if(response.statusCode === 200) {
-            reData.state   = true;
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
-            reData.data    = body;
-        } else {
-            reData.errCode = response.statusCode;
-            reData.message = response.statusMessage;
+        auth: {
+            'user': config.database.user,
+            'pass': config.database.pwd,
+            'sendImmediately': true
         }
-        callback(reData.state, reData);
-    })
+    };
+    request(opts, callback)
 };
 
 module.exports = db;

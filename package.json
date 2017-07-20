@@ -1,34 +1,24 @@
 {
-  "name": "opp",
-  "version": "1.0.0",
-  "description": "spark opp aplication",
-  "main": "app.js",
+  "name": "spark-opp",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
-    "run": "NODE_ENV=production pm2 start app.js --name 'opp' -o './logs/pm2.error.log' -i 1",
-    "dev": "NODE_ENV=development node app.js"
+    "start": "node ./bin/www",
+    "run": "NODE_ENV=production pm2 start ./bin/www --name 'opp' -o './logs/pm2.error.log' -i 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@git.coding.net:wenxing/opp.git"
-  },
-  "keywords": [
-    "kc"
-  ],
-  "author": "zfm",
-  "license": "ISC",
   "dependencies": {
+    "async": "^2.5.0",
+    "basic-auth": "^1.1.0",
+    "body-parser": "~1.17.1",
+    "cookie-parser": "~1.4.3",
     "cradle": "^0.7.1",
-    "express": "^4.15.3",
-    "pm2": "^2.5.0"
-  },
-  "eslintConfig": {
-    "extends": "eslint:recommended",
-    "env": {
-      "node": true
-    },
-    "rules": {
-      "no-console": "off",
-      "no-unused-vars": "off"
-    }
+    "debug": "~2.6.3",
+    "ejs": "~2.5.6",
+    "express": "~4.15.2",
+    "jade": "^1.11.0",
+    "lodash": "^4.17.4",
+    "morgan": "~1.8.1",
+    "request": "^2.81.0",
+    "serve-favicon": "~2.4.2"
   }
 }

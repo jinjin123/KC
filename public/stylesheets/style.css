@@ -1,0 +1,126 @@
+* {
+  padding: 0;
+  margin: 0;
+  text-decoration: none;
+}
+
+body {
+  font-family: Helvetica Neue, Arial, sans-serif;
+  font-size: 14px;
+  color: #444;
+}
+
+#logo {
+  background-color: #e7e7eb;
+  display: block;
+  padding: 14px 0;
+  text-align: center;
+  position: relative;
+}
+
+#block_menu {
+  background-color: #fff;
+  border-right: 1px solid #e7e7eb;
+  overflow: visible;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  width: 210px;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  position: fixed;
+  z-index: 99;
+}
+
+#block_menu #menu_list li {
+  display: block;
+  float: left;
+  width: 100%;
+}
+
+#block_menu #menu_list li a {
+  border-top: 1px solid #e7e7eb;
+  color: #787878;
+  display: block;
+  width: 100%;
+  float: left;
+  padding: 14px 7px 14px 21px;
+  overflow: visible;
+  box-sizing: border-box;
+  word-wrap: break-word;
+}
+
+#block_menu #menu_list li a.active {
+  background-color: #e1e1e1;
+  color: #333;
+}
+
+#block_content {
+  margin-left: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+#content_main {
+  clear: both;
+}
+
+#content_main table {
+  width: 95%;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  margin-left:2%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+
+#block_top {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+  background-color: #787878;
+  border-bottom: 1px solid #e1e1e1;
+  overflow: visible;
+  box-sizing: border-box;
+  word-wrap: break-word;
+}
+
+#block_top #navbar_left {
+  clear: both;
+  padding: 7px 14px;
+  font-size: 150%;
+  line-height: 1.1;
+  font-weight: bold;
+  float: left;
+}
+
+#block_top #navbar_right {
+  padding: 7px 14px;
+  font-size: 100%;
+  line-height: 1.1;
+  font-weight: bold;
+  float: right;
+}
+
+#block_top #navbar_right li {
+  display: inline-block;
+}
+
+#block_top #navbar_right li a {
+  color: #333333;
+}
+
+button {
+  padding: 7px;
+  border:none;
+  color: #555;
+  font-weight: bold;
+  border-radius: 5px;
+  text-decoration: none;
+  background-color: #e4e5e9;
+}

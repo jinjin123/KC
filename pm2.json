@@ -1,0 +1,17 @@
+{
+  "apps": [{
+    "name"  : "opp",
+    "script": "/app/bin/www",
+    "cwd"   : "/app",
+    "watch" : ["bin", "config", "db", "routers", "services"],
+    "ignore_watch" : [
+      "node_modules",
+      "logs",
+      "public"
+    ],
+    "env"   : {
+      "NODE_ENV": "production",
+      "NODE_TLS_REJECT_UNAUTHORIZED":"0"
+    }
+  }]
+}
