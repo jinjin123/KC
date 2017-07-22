@@ -9,7 +9,7 @@
 var db = {};
 
 // 选数据库
-switch (config.database.driver) {
+switch (global.config.database.driver) {
     case 'couchDB':db = require('./couchDB');break;
     default:db = require('./couchDB');break;
 }

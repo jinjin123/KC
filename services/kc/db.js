@@ -9,7 +9,7 @@ var db = {};
 view.sync_status = {
     map: function(doc) {
         if (doc.data.uuid && doc._deleted !== true && doc.data.state && (!doc.sync_failed_num || doc.sync_failed_num < 5)) {
-            if (!doc.sync_status || doc.sync_status !== 1) {
+            if (!doc.sync_status || doc.sync_status !== 1 || doc.last_state !== doc.data.state) {
                 emit(doc.sync_status, doc);
             }
         }
@@ -22,6 +22,14 @@ view.sync_failed = {
             if (!doc.sync_status || doc.sync_status !== 1) {
                 emit(doc.sync_failed, doc);
             }
+        }
+    }
+};
+
+view.conflicts = {
+    map: function(doc) {
+        if (doc._conflicts) {
+            emit([doc._rev].concat(doc._conflicts), [doc._rev].concat(doc._conflicts));
         }
     }
 };

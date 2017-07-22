@@ -103,6 +103,7 @@ oc.postOrder = function (auth, order, callback) {
 
     request(opts, function (err, response, body) {
         console.log('postOrder:'+response.statusCode);
+        console.log(body);
         if (err) {
             reData.message = err;
         } else if (response.statusCode === 200) {
@@ -138,6 +139,7 @@ oc.patchOrder = function (auth, uuid, order, callback) {
     };
     request(opts, function (err, response, body) {
         console.log('patchOrder:'+response.statusCode);
+        console.log(body);
         if (err) {
             reData.message = err;
         } else if (response.statusCode === 200) {

@@ -1,4 +1,9 @@
 /**
+ * 加载配置信息
+ */
+global.config = require('./config');
+
+/**
  * 导入库
  */
 var express      = require('express');
@@ -8,11 +13,6 @@ var logger       = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser   = require('body-parser');
 var service      = require('./services');
-
-/**
- * 加载配置信息
- */
-global.config = require('./config');
 
 /**
  * 加载路由列表
@@ -46,7 +46,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 for (var i in routes) {
     app.use(i, routes[i]);
 }
-
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 /**
  * 启动kc
  */
