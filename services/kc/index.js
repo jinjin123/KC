@@ -486,6 +486,9 @@ kc.start = function () {
         if (err) {
             console.log('kc service start failed');
             console.log(err);
+            setTimeout(function(){
+                kc.start();
+            }, 10000);
         } else {
             console.log('kc start');
         }
