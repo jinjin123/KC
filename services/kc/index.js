@@ -177,7 +177,7 @@ kc.chackOrder = function (cdb, dbName) {
         getNotSyncOrderData: ['serviceStatusCk', function (results, next) {
             var serviceStatus = results['serviceStatusCk'];
             if (serviceStatus) {
-                cdb.view('kc2/sync_status', {limit:1000}, function (err, res) {
+                cdb.view('kc/sync_status', {limit:1000}, function (err, res) {
                     next(err, res);
                 })
             } else {
@@ -304,7 +304,7 @@ kc.conflicts = function (cdb, dbName) {
          * 获取含有冲突数据版本
          */
         getConflictsRev: function (next) {
-            cdb.view('kc2/conflicts', {limit:1} , function (err, data) {
+            cdb.view('kc/conflicts', {limit:1} , function (err, data) {
                 next(err, data.rows)
             })
         },
