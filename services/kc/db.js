@@ -291,6 +291,7 @@ db.init = function (dbname) {
     return cdb;
 };
 
+
 // 重新初始化
 db.re_init = function (dbname) {
     var connection = new(cradle.Connection)(global.config.database.host, global.config.database.port, {
