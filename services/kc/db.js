@@ -2,11 +2,13 @@
 
 var cradle = require('cradle');
 var request = require('request');
-var view = {};
+var _design = {};
 var db = {};
 
 // couchDB views get not sync order
-view.sync_status = {
+_design.language = 'javascript';
+_design.views = {};
+_design.views.sync_status = {
     map: function(doc) {
         if (doc.data.uuid && doc._deleted !== true && doc.data.state && (!doc.sync_failed_num || doc.sync_failed_num < 5)) {
             if (!doc.sync_status || doc.sync_status !== 1 || doc.last_state !== doc.data.state) {
@@ -16,7 +18,7 @@ view.sync_status = {
     }
 };
 
-view.sync_failed = {
+_design.views.sync_failed = {
     map: function(doc) {
         if (doc.data.uuid && doc._deleted !== true && doc.data.state && doc.sync_failed_num && doc.sync_failed_num >= 5) {
             if (!doc.sync_status || doc.sync_status !== 1) {
@@ -26,7 +28,7 @@ view.sync_failed = {
     }
 };
 
-view.conflicts = {
+_design.views.conflicts = {
     map: function(doc) {
         if (doc._conflicts) {
             emit([doc._rev].concat(doc._conflicts), [doc._rev].concat(doc._conflicts));
@@ -34,7 +36,7 @@ view.conflicts = {
     }
 };
 
-view.checkuuidid = {
+_design.views.checkuuidid = {
     map: function(doc) {
         if (doc.data && doc.data.order_items && doc.data.state && doc._id !== doc.data.uuid) {
             emit(doc.data.uuid, {"_id": doc._id, "uuid": doc.data.uuid});
@@ -42,7 +44,7 @@ view.checkuuidid = {
     }
 };
 
-view.hx = {
+_design.views.hx = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             function convertDate(d) {
@@ -75,7 +77,7 @@ view.hx = {
 };
 
 
-view.lh = {
+_design.views.lh = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -104,7 +106,7 @@ view.lh = {
     }
 };
 
-view.order_status = {
+_design.views.order_status = {
     map: function(doc) {
         if(doc.data && doc.data.order_items && doc.data.state){
             emit(doc.data.state, doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
@@ -112,7 +114,7 @@ view.order_status = {
     }
 };
 
-view.refund = {
+_design.views.refund = {
     map: function(doc) {
         if (doc.data && doc.data.order_items && doc.data.state && doc.data.field_returned) {
             emit(doc.data.uuid,null);
@@ -120,7 +122,7 @@ view.refund = {
     }
 };
 
-view.status = {
+_design.views.status = {
     map: function (doc) {
         if (doc.data && doc.data.order_items && doc.data.state) {
             emit([doc.sync_status, doc.data.state], doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
@@ -128,7 +130,7 @@ view.status = {
     }
 };
 
-view.store = {
+_design.views.store = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -158,7 +160,7 @@ view.store = {
     }
 };
 
-view.submittime = {
+_design.views.submittime = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -183,7 +185,7 @@ view.submittime = {
     }
 };
 
-view.timeprice = {
+_design.views.timeprice = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -216,7 +218,7 @@ view.timeprice = {
     }
 };
 
-view.timestamp = {
+_design.views.timestamp = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -242,7 +244,7 @@ view.timestamp = {
     }
 };
 
-view.timestatus = {
+_design.views.timestatus = {
     map: function(doc) {
         function getOrderTimestamp(doc){
             if(doc && doc.data && doc.data.order_items){
@@ -270,13 +272,48 @@ view.timestatus = {
     }
 };
 
-view.uuid = {
+_design.views.uuid = {
     map: function(doc) {
         if (doc["35"] && doc["34"]) {
             emit(doc["35"], doc._conflicts ? [doc._rev].concat(doc._conflicts) : [doc._rev]);
         }
     }
 };
+
+_design.filters = {
+    design: function(doc, req) {
+        if (doc._id.match(/^_design\//)) {
+            if (doc.order === undefined) {
+                return true;
+            }
+        }
+        return false;
+    },
+    data: function(doc, req) {
+        if (doc.data) {
+            return true;
+        }
+        return false;
+    },
+    store: function(doc, req) {
+        if (doc.data && doc.data.field_de_store_id == req.query.field_de_store_id) {
+            return true;
+        }
+        return false;
+    }
+};
+
+_design.updates = {
+    KCRequest: function (doc, req) {
+        var newDoc = JSON.parse(req.body);
+        if (req.query.send_by_kc != 1){
+            newDoc.sync_status = false;
+        }else{
+            newDoc.sync_status = true;
+        }
+        return [newDoc, {json: {'id': newDoc._id}}];
+    }
+}
 
 db.init = function (dbname) {
     var connection = new(cradle.Connection)(global.config.database.host, global.config.database.port, {
@@ -285,7 +322,7 @@ db.init = function (dbname) {
     var cdb =  connection.database(dbname);
 
     // 写入view
-    cdb.save('_design/kc', view);
+    cdb.save('_design/kc', _design);
 
     // 全局DB写入
     return cdb;
