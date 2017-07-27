@@ -149,6 +149,40 @@
     };
 
     /**
+     * 给用户授权
+     * @param mc_id
+     * @param user
+     * @param password
+     * @param callback
+     * @constructor
+     */
+    couchDB.AuthUser = function (mc_id, user, password, callback) {
+        var opts = {
+            method: 'get',
+            contentType : 'application/json',
+            url:'http://localhost:5984/'+mc_id+'/_security',
+            data: '',
+            dataType:"json",
+            processData: false,
+            cache: false,
+            crossDomain: true,
+            headers:{"Authorization": "Basic " + btoa(user + ":" + password)}
+        };
+        var auth = {
+            "members": {
+                "names": [mc_id],
+                "roles": []
+            }
+        };
+        $.ajax(opts).done(function (data) {
+            auth._rev = data._rev;
+            couchDB.ajax('put', mc_id+'/_security', auth, user, password, callback)
+        }).fail(function () {
+            couchDB.ajax('put', '_users/org.couchdb.user:'+mc_id, auth, user, password, callback)
+        });
+    };
+
+    /**
      * 配置上行
      * @param mc_id
      * @param up
@@ -377,12 +411,14 @@
                 };
                 couchDB.addDB(mc_id, user, password, function () {
                     couchDB.editUser(mc_id, user_data, user, password, function () {
-                        couchDB.replicatorUP(mc_id, up, user, password, function () {
-                            couchDB.replicatorDown(mc_id, down, user, password, function () {
-                                couchDB.getStoreConf(user, password, callback)
-                            })
+                        couchDB.AuthUser(mc_id, user, password, function () {
+                            couchDB.replicatorUP(mc_id, up, user, password, function () {
+                                couchDB.replicatorDown(mc_id, down, user, password, function () {
+                                    couchDB.getStoreConf(user, password, callback);
+                                });
+                            });
                         });
-                    })
+                    });
                 });
 
             } else {
