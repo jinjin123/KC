@@ -13,6 +13,15 @@ var async   = require('async');
 var service = require('../services');
 
 /**
+ * 门店配置同步关系
+ */
+kc.get('/store/config', function (req, res) {
+    var data = {};
+    data.title   = '门店配置';
+    res.render('store_config', data);
+});
+
+/**
  * 数据库配置页面
  */
 kc.get('/config', function(req, res) {
@@ -289,9 +298,23 @@ kc.post('/config/edit', function(req, res) {
         },
 
         /**
+         * 停止kc服务
+         */
+        stopKCService: ['getDBData', function (results, next) {
+            var oldConf  = results['getDBData'].data;
+            var dbs = [];
+
+            for (var i in oldConf) {
+                dbs.push(oldConf[i].mc_id);
+            }
+            service.kc.stop(dbs);
+            next(null);
+        }],
+
+        /**
          * 修改密码
          */
-        changeUserPwd: ['getReqConf', 'getDBData', function (results, next) {
+        changeUserPwd: ['getReqConf', 'getDBData', 'stopKCService', function (results, next) {
             var reqConf = results['getReqConf'];
             var dbUser  = reqConf.db_user;
             var dbPwd   = reqConf.db_pwd;
@@ -345,6 +368,103 @@ kc.post('/config/edit', function(req, res) {
 
 });
 
+/**
+ * 清空数据
+ * 等于删除新建
+ */
+kc.post('/config/data/delete', function (req, res) {
+    /**
+     * 构建需要顺序完成的事件
+     */
+    var event = {
+        /**
+         * 获取最新传入的数据
+         */
+        getReqConf: function (next) {
+            if (req.body) {
+                next(null, req.body);
+            } else {
+                next('new conf get error');
+            }
+        },
+
+        /**
+         * 获取数据库配置
+         */
+        getDBData: function (next) {
+            couchDB.getConf(function (err, response) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, response);
+                }
+            });
+        },
+
+        /**
+         * 停止kc服务
+         */
+        stopKCService: ['getDBData', function (results, next) {
+            var oldConf = results['getDBData'].data;
+            var dbs = [];
+
+            for (var i in oldConf) {
+                dbs.push(oldConf[i].mc_id);
+            }
+            service.kc.stop(dbs);
+            next(null);
+        }],
+
+        getAllData:['stopKCService', function (results, next) {
+            var reqConf = results['getReqConf'];
+            var dbName  = reqConf.mc_id;
+            couchDB.get('/'+dbName+'/_design/kc/_view/timestamp', function (err, response, body) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, body.rows);
+                }
+            });
+        }],
+
+        /**
+         * 删除数据
+         */
+        deleteData: ['getAllData', function (results, next) {
+            var allData = results['getAllData'];
+            var reqConf = results['getReqConf'];
+            var dbName  = reqConf.mc_id;
+            var tmp = [];
+            for (var i in allData) {
+                var d = {
+                    '_id': allData[i].id,
+                    '_rev': allData[i].value.rev[0],
+                    'data': {
+                        'field_de_store_id': allData[i].value.field_de_store_id
+                    },
+                    '_deleted': true
+                };
+                tmp.push(d);
+            }
+
+            var cdb = couchDB.initDB(dbName);
+            cdb.save(tmp, function (err, res) {
+                next(err, res);
+            });
+        }]
+    };
+
+    /**
+     * 执行事件
+     */
+    async.auto(event, function (err, results) {
+        if (!err || err === 'db_exist') {
+            res.redirect('/kc/config');
+        } else {
+            console.log(err)
+        }
+    });
+});
 
 /**
  * 删除数据库事件提交

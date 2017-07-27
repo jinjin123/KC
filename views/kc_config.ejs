@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
     <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
     <script src="/javascripts/kc_config.js"></script>
+    <script src="/javascripts/layer/layer.js"></script>
     <title>KC Deploy</title>
 </head>
 <body>
@@ -45,6 +46,7 @@
                 <td><input type="text" name="db_pwd" class="value" value="<%= mc_list[i].db_pwd %>" readonly></td>
                 <td>
                     <button type="button" onclick="editItem($(this))">编辑</button>
+                    <button type="button" onclick="deleteDBData($(this))">清空数据</button>
                     <button type="button" onclick="deleteDBName($(this))">删除配置</button>
                 </td>
             </form>
@@ -66,5 +68,8 @@
         </table>
     </div>
 </div>
+<script>
+    $('.menu_config').find('a').addClass('active');
+</script>
 </body>
 </html>

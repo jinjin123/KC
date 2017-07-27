@@ -7,6 +7,7 @@ var couchDB = require('../../db');
 var async   = require('async');
 var kc = {};
 global.sync_ing = {};
+global.myFeed = {};
 global.kc_status = true;
 
 /**
@@ -86,6 +87,18 @@ kc.syncOrder = function (dbName, doc) {
             var syncState = results['syncOrderInOc'];
             var orderRev = results['getCouchDBRev'];
             var last_state =  doc.data.state;
+            switch (last_state) {
+                case 'draft':last_state=0;break;
+                case 'fulfillment':last_state=1;break;
+                case 'wait_for_buyer_to_pay':last_state=2;break;
+                case 'buyer_has_paid':last_state=3;break;
+                case 'preparing':last_state=4;break;
+                case 'ready':last_state=5;break;
+                case 'delivering':last_state=6;break;
+                case 'completed':last_state=7;break;
+                case 'canceled':last_state=8;break;
+                case 'returned':last_state=9;break;
+            }
             var cdb = db.re_init(dbName);
             if (syncState) {
                 orderRev.sync_status = 1;
@@ -181,7 +194,7 @@ kc.chackOrder = function (cdb, dbName) {
                     next(err, res);
                 })
             } else {
-                next('service status failed');
+                next('service_status_failed');
             }
 
         }],
@@ -213,7 +226,9 @@ kc.chackOrder = function (cdb, dbName) {
                 var date = new Date();
                 console.log(date+ ' kc restart to '+dbName);
                 var cdb = db.re_init(dbName);
-                kc.chackOrder(cdb, dbName);
+                if (err !== 'service_status_failed') {
+                    kc.chackOrder(cdb, dbName);
+                }
             }, 10000);
         } else {
             var date = new Date();
@@ -263,11 +278,23 @@ kc.feed = function (cdb, dbName) {
     });
 
     feed.on('error', function(er) {
-        console.error('Since Follow always retries on errors, this must be serious');
+        console.error('Since Feed error');
+        console.error(er);
+    });
+
+    feed.on('timeout', function(er) {
+        console.error('Since Feed timeout');
+        console.error(er);
+    });
+
+    feed.on('stop', function(er) {
+        console.error('Since Feed stop');
         console.error(er);
     });
 
     feed.follow();
+
+    global.myFeed[dbName] = feed;
 };
 
 /**
@@ -301,13 +328,29 @@ kc.conflicts = function (cdb, dbName) {
     var event = {
 
         /**
+         * 检查目前服务是否可用
+         */
+        serviceStatusCk: function (next) {
+            next(null, global.kc_status)
+        },
+
+        /**
          * 获取含有冲突数据版本
          */
-        getConflictsRev: function (next) {
-            cdb.view('kc/conflicts', {limit:1} , function (err, data) {
-                next(err, data.rows)
-            })
-        },
+        getConflictsRev: ['serviceStatusCk', function (results, next) {
+            var serviceStatus = results['serviceStatusCk'];
+            if (serviceStatus) {
+                cdb.view('kc/conflicts', {limit:1} , function (err, data) {
+                    if (!data) {
+                        next('conflicts status failed');
+                    } else {
+                        next(err, data.rows)
+                    }
+                })
+            } else {
+                next('conflicts status failed');
+            }
+        }],
 
         /**
          * 获取互相冲突的文档内容
@@ -400,7 +443,9 @@ kc.conflicts = function (cdb, dbName) {
         if (err) {
             console.log(err);
             setTimeout(function(){
-                kc.conflicts(cdb,dbName);
+                if (global.kc_status === true) {
+                    kc.conflicts(cdb,dbName);
+                }
             }, 1000);
         } else {
             console.log(results);
@@ -503,10 +548,10 @@ kc.stop = function (dbs) {
     global.kc_status = false;
 
     dbs.forEach(function (dbname) {
-        var cdb = db.init(dbname);
-        var feed = cdb.changes({ since: global.config.database.since, include_docs: true });
-        console.log(dbname);
-        feed.stop()
+        // var cdb = db.init(dbname);
+        // var feed = cdb.changes({ since: global.config.database.since, include_docs: true });
+        // console.log(dbname);
+        global.myFeed[dbname].stop()
     });
 
     console.log('kc stop');
@@ -530,6 +575,9 @@ kc.restart = function (dbs) {
 
         // 启动订单同步程序
         kc.chackOrder(cdb, dbname);
+
+        // 启动冲突处理
+        kc.conflicts(cdb, dbname);
 
         console.log('listen: '+dbname);
     });

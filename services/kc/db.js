@@ -322,7 +322,11 @@ db.init = function (dbname) {
     var cdb =  connection.database(dbname);
 
     // 写入view
-    cdb.save('_design/kc', _design);
+    console.log('write kc view')
+    cdb.save('_design/kc', _design, function (err, res) {
+        console.log(err)
+        console.log(res)
+    });
 
     // 全局DB写入
     return cdb;
