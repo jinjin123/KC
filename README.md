@@ -22,4 +22,4 @@
 * 测试环境访问[http://kc.sparkpad-dev.com](http://kc.sparkpad-dev.com)
 * 选择服务配置，注册门店数据库配置信息
 * 选择门店配置，添加数据同步配置信息（授权密码是门店couchDB的用户名密码）
-* 注意：配置同步关系的云端地址不带http://（如测试地址：couchdb-cloud.sparkpad-dev.com）
+* 注意：配置同步关系的云端地址不带'http://'（如测试地址：couchdb-cloud.sparkpad-dev.com）
