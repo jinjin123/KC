@@ -1,3 +1,21 @@
+function addDBName(item) {
+    var tr = item.parents('tr');
+    var form = tr.find('form');
+    form.attr('action', '/kc/config/add');
+    var mc_id = tr.find("input[name='mc_id']").val();
+    var oc_user = tr.find("input[name='oc_user']").val();
+    var oc_pwd = tr.find("input[name='oc_pwd']").val();
+    var db_user = tr.find("input[name='db_user']").val();
+    var db_pwd = tr.find("input[name='db_pwd']").val();
+    if (!mc_id || !oc_user || !oc_pwd || !db_user || !db_pwd) {
+        layer.msg('请填写正确的数据！', {icon: 2});
+    } else {
+        layer.msg('开始添加数据库！', {icon: 1});
+        form.submit();
+    }
+
+}
+
 /**
  * 删除数据库
  * @param item
