@@ -200,6 +200,23 @@ kc.post('/config/add', function(req, res) {
         }],
 
         /**
+         * 创建数据库
+         */
+        saveDatabaseView: ['stopKCService', function (results, next) {
+            var newConf = results['getNewConf'];
+            var dbName  = newConf.mc_id;
+
+            couchDB.dbSaveViews(dbName, function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, newConf);
+                }
+            });
+
+        }],
+
+        /**
          * 创建用户
          */
         createUser: ['createDatabase', function (results, next) {
@@ -235,7 +252,7 @@ kc.post('/config/add', function(req, res) {
         /**
          * 4、保存配置数据
          */
-        saveConfData: ['authUserToDB', function (results, next) {
+        saveConfData: ['authUserToDB', 'saveDatabaseView', function (results, next) {
             var confData = results['createDatabase'];
             couchDB.saveConf(confData, function (err, response) {
                 if (err) {
