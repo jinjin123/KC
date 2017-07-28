@@ -84,10 +84,10 @@ function renderTbody(data) {
     }
 
     ftr += '<tr>' +
-        '<td><input type="text" name="mc_id" placeholder="商家编号 如：b726"></td>' +
-        '<td><input type="text" name="mc_pass" placeholder="同步数据库密码 如：restws.gtdx"></td>' +
-        '<td><input type="text" name="store_id" placeholder="门店号 如：729"></td>' +
-        '<td><input type="text" name="url" placeholder="云端地址 如：couchdb-cloud.sparkpad-dev.com"></td>' +
+        '<td><input type="text" name="mc_id" placeholder="如：b726"></td>' +
+        '<td><input type="text" name="mc_pass" placeholder="如：restws.gtdx"></td>' +
+        '<td><input type="text" name="store_id" placeholder="如：729"></td>' +
+        '<td><input type="text" name="url" placeholder="如：couchdb-cloud.sparkpad-dev.com"></td>' +
         '<td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="up" ></td>' +
         '<td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="down" ></td>' +
         '<td><button type="button" onclick="addStoreConf($(this))">增加</button></td>' +
