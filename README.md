@@ -15,8 +15,8 @@
 * 下载 [couchdb-2.0.0.2.msi](https://dl.bintray.com/apache/couchdb/win/2.0.0.2/couchdb-2.0.0.2.msi)
 * 点击安装即可
 * 访问[http://localhost:5984/_utils](http://localhost:5984/_utils)配置管理员账号
-* 访问[http://localhost:5984/_utils/#_config/nonode@nohost](http://localhost:5984/_utils/#_config/nonode@nohost) 增加配置chttpd（bind_address: 0.0.0.0）、couch_httpd_auth（require_valid_user:true）
-* 访问[http://localhost:5984/_utils/#_config/nonode@nohost/cors](http://localhost:5984/_utils/#_config/nonode@nohost/cors) 点击【enable cors】将云端的couchDB服务地址添加到允许列表
+* 访问[http://localhost:5984/_utils/#_config/nonode@nohost](http://localhost:5984/_utils/#_config/nonode@nohost) 增加配置`chttpd（bind_address: 0.0.0.0）`、`couch_httpd_auth（require_valid_user:true）`
+* 访问[http://localhost:5984/_utils/#_config/nonode@nohost/cors](http://localhost:5984/_utils/#_config/nonode@nohost/cors) 点击`enable cors`将云端的couchDB服务地址添加到允许列表
 
 ## 配置信息注册
 * 测试环境访问[http://kc.sparkpad-dev.com](http://kc.sparkpad-dev.com)
