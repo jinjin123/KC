@@ -5,6 +5,22 @@ var couchDB = require('../db');
 var basicAuth = require("basic-auth");
 var home = express.Router();
 
+Date.prototype.Format = function (fmt) { //author: meizz
+    var o = {
+        "M+": this.getMonth() + 1, //月份
+        "d+": this.getDate(), //日
+        "h+": this.getHours(), //小时
+        "m+": this.getMinutes(), //分
+        "s+": this.getSeconds(), //秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+        "S": this.getMilliseconds() //毫秒
+    };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+};
+
 var auth = function(req, resp, next) {
     function unauthorized(resp) {
         console.log("需要登录");
@@ -18,10 +34,9 @@ var auth = function(req, resp, next) {
         return unauthorized(resp);
     }
 
-    var mon = new Date().getMonth() + 1;
-    var day = new Date().getDate();
+    var time = new Date().Format('yyyyMMdd');
 
-    if (user.name === global.config.admin_user && user.pass === mon.toString()+day.toString()+'@'+global.config.admin_pwd) {
+    if (user.name === global.config.admin_user && user.pass === global.config.admin_user +'@'+ time) {
         return next();
     } else {
         console.log("未能登录");
