@@ -18,7 +18,9 @@ var auth = function(req, resp, next) {
         return unauthorized(resp);
     }
 
-    if (user.name === global.config.admin_user && user.pass === global.config.admin_pwd) {
+    var day = new Date().getDate();
+
+    if (user.name === global.config.admin_user && user.pass === day+'@'+global.config.admin_pwd) {
         return next();
     } else {
         console.log("未能登录");
