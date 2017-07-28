@@ -55,6 +55,10 @@ function deleteStoreConf(self) {
     });
 }
 
+/**
+ * 渲染列表
+ * @param data
+ */
 function renderTbody(data) {
     var tr = '';
     var ftr = '';

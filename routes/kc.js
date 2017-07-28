@@ -200,7 +200,7 @@ kc.post('/config/add', function(req, res) {
         }],
 
         /**
-         * 创建数据库
+         * 创建数据库views
          */
         saveDatabaseView: ['stopKCService', function (results, next) {
             var newConf = results['getNewConf'];

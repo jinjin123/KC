@@ -387,7 +387,7 @@
                 };
                 var up = {
                     "source" : 'http://'+mc_id+':'+mc_pass+'@localhost:5984/'+mc_id,
-                    "target" : target,
+                    "target" : 'http://'+mc_id+':'+mc_pass+'@'+target+'/'+mc_id,
                     "mc_id" : mc_id,
                     "mc_pass" : mc_pass,
                     "mc_type" : 'up',
@@ -398,7 +398,7 @@
                     }
                 };
                 var down = {
-                    "source" : target,
+                    "source" : 'http://'+mc_id+':'+mc_pass+'@'+target+'/'+mc_id,
                     "target" : 'http://'+mc_id+':'+mc_pass+'@localhost:5984/'+mc_id,
                     "mc_id" : mc_id,
                     "mc_pass" : mc_pass,
