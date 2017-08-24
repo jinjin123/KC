@@ -106,7 +106,7 @@ oc.postOrder = function (auth, order, callback) {
         headers:{'Content-Type':'application/json'},
         auth: auth
     };
-
+    console.log(opts.body);
     request(opts, function (err, response, body) {
         console.log('postOrder:'+response.statusCode);
         console.log(body);
