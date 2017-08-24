@@ -7,6 +7,11 @@
 * docker exec -it sparkpad-opp npm install
 * docker exec -it sparkpad-opp pm2 restart opp
 
+## 服务配置
+* 在/confi目录下包含有服务配置（development.js开发环境配置，production.js生产环境配置）
+* 文件中`oc_host`为OC服务地址
+* 文件中`database`为couchDB信息，修改host，user，pwd为couchDB服务信息
+
 ## couchDB docker 安装
 * docker pull klaemo/couchdb:2.0.0
 * docker run --name sparkpad-couchdb -p 5984:5984 -d klaemo/couchdb:2.0.0
