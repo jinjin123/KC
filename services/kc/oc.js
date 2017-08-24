@@ -93,6 +93,7 @@ oc.postOrder = function (auth, order, callback) {
     var reData = {state:false, errCode:500, message:"error", data:{}};
     var url = global.config.oc_host + '/custom/entity/commerce_order';
     order.state = oc.getState(order.state);
+    order.placed = order.placed.toString();
     order.placed = order.placed.substring(0,9);
     var opts = {
         method: 'post',
