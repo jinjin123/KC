@@ -9,6 +9,7 @@
 
 ## 服务配置
 * 在/confi目录下包含有服务配置（development.js开发环境配置，production.js生产环境配置）
+* 在云端couchDB中创建kc数据库
 * 文件中`oc_host`为OC服务地址
 * 文件中`database`为couchDB信息，修改host，user，pwd为couchDB服务信息
 
