@@ -95,6 +95,10 @@ oc.postOrder = function (auth, order, callback) {
     order.state = oc.getState(order.state);
     order.placed = order.placed.toString();
     order.placed = order.placed.substring(0,9);
+    for(var i = 0; i < order.order_items.length; i++) {
+        order.order_items[i].unit_price.number = order.order_items[i].unit_price.number.toString();
+        order.order_items[i].total_price.number = order.order_items[i].total_price.number.toString();
+    }
     var opts = {
         method: 'post',
         uri: url,
