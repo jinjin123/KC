@@ -78,7 +78,7 @@ function renderTbody(data) {
             tr += '<td><input type="checkbox" name="down" checked="checked" disabled="disabled"></td>';
         }
         tr += '<td>' +
-            '<button type="button" onclick="deleteStoreConf($(this))">删除</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" onclick="deleteStoreConf($(this))">删除</button>' +
             '</td>' +
             '</tr>'
     }
@@ -90,7 +90,7 @@ function renderTbody(data) {
         '<td><input type="text" name="url" placeholder="如：couchdb-cloud.sparkpad-dev.com"></td>' +
         '<td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="up" ></td>' +
         '<td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="down" ></td>' +
-        '<td><button type="button" onclick="addStoreConf($(this))">增加</button></td>' +
+        '<td><button type="button" class="btn btn-success btn-sm" onclick="addStoreConf($(this))">增加</button></td>' +
         '</tr>';
 
     kc_config_table.children('tbody').html(tr);

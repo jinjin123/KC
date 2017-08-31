@@ -1,0 +1,51 @@
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            门店配置
+            <small>门店couchDB配置同步关系</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="#"><i class="fa fa-dashboard"></i> KC配置</a></li>
+            <li class="active">门店配置</li>
+        </ol>
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+
+        <div id="block_content" class="box">
+            <div id="content_main" class="box-body">
+                <table id="kc_config_table" class="table table-bordered table-hover">
+                    <thead>
+                    <tr>
+                        <th class="">商家编号<span class="arrow asc"></span></th>
+                        <th class="">商家密钥<span class="arrow asc"></span></th>
+                        <th class="">门店号<span class="arrow asc"></span></th>
+                        <th class="">云端地址<span class="arrow asc"></span></th>
+                        <th class="">上行<span class="arrow asc"></span></th>
+                        <th class="">下行<span class="arrow asc"></span></th>
+                        <th><label>操作</label></th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                    <tr>
+                        <td><input type="text" name="mc_id" placeholder="如：b726" ></td>
+                        <td><input type="text" name="mc_pass" placeholder="如：restws.gtdx" ></td>
+                        <td><input type="text" name="store_id" placeholder="如：729" ></td>
+                        <td><input type="text" name="url" placeholder="如：couchdb-cloud.sparkpad-dev.com" ></td>
+                        <td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="up" ></td>
+                        <td><input style="margin-left: 35%;" type="checkbox" checked="checked" name="down" ></td>
+                        <td><button type="button" class="btn btn-success btn-sm" onclick="addStoreConf($(this))">增加</button></td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+
+    </section>
+    <!-- /.content -->
+</div>

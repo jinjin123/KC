@@ -18,7 +18,8 @@ var service = require('../services');
 kc.get('/store/config', function (req, res) {
     var data = {};
     data.title   = '门店配置';
-    res.render('store_config', data);
+    data.content = 'store-config';
+    res.render('index-config', data);
 });
 
 /**
@@ -104,7 +105,8 @@ kc.get('/config', function(req, res) {
             var data = {};
             data.mc_list = results['saveConf'];
             data.title   = '服务配置';
-            res.render('kc_config', data);
+            data.content = 'kc-config';
+            res.render('index-config', data);
         }
     });
 
