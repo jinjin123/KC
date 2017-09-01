@@ -40,9 +40,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
     <% include main-sidebar.ejs %>
 
     <!-- Content Wrapper. Contains page content -->
-    <% if (content === 'report-config') { %>
-    <% include report-config.ejs %>
-    <% } else if (content === 'kc-config') { %>
+    <% if (content === 'kc-config') { %>
     <% include kc-config.ejs  %>
     <% } else if (content === 'store-config') { %>
     <% include store-config.ejs  %>

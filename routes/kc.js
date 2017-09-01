@@ -204,7 +204,7 @@ kc.post('/config/add', function(req, res) {
         /**
          * 创建数据库views
          */
-        saveDatabaseView: ['stopKCService', function (results, next) {
+        saveDatabaseView: ['createDatabase', function (results, next) {
             var newConf = results['getNewConf'];
             var dbName  = newConf.mc_id;
 

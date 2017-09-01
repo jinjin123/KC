@@ -9,8 +9,7 @@
 var routers = {
     '/'      : require('./home'),
     '/users' : require('./users'),
-    '/kc'    : require('./kc'),
-    '/report': require('./report')
+    '/kc'    : require('./kc')
 };
 
 module.exports = routers;

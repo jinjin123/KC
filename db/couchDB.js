@@ -11,6 +11,14 @@ var request = require('request');
 var couchDB = {};
 
 var _design = {};
+var _report = {};
+
+_report.language = 'javascript';
+_report.views = {
+    "today_order": {
+        "map": "function (doc) {\n  var timestamp=Date.parse(new Date().toLocaleDateString())/1000;\n  if (doc.createtime > timestamp) {\n    emit(doc.sync_status, doc.data);\n  }\n}"
+    }
+};
 
 _design.language = 'javascript';
 _design.views = {
@@ -237,11 +245,17 @@ couchDB.dbAdd = function (db_name, callback) {
  * @param callback
  */
 couchDB.dbSaveViews = function (db_name, callback) {
-    couchDB.put('/'+db_name+'/_design/kc', _design, function (err, response, body) {
+    couchDB.put('/'+db_name+'/_design/report', _report, function (err) {
         if (err) {
             callback(err);
         } else {
-            callback(null, body);
+            couchDB.put('/'+db_name+'/_design/kc', _design, function (err, response, body) {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, body);
+                }
+            });
         }
     });
 };
