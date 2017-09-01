@@ -83,4 +83,110 @@ report.get('/config', function(req, res) {
 
 });
 
+
+/**
+ * 修改数据库事件提交
+ */
+report.post('/config/edit', function(req, res) {
+
+    /**
+     * 构建需要顺序完成的事件
+     */
+    var event = {
+
+        /**
+         * 1、获取最新传入的数据
+         */
+        getReqConf: function (next) {
+            if (req.body) {
+                next(null, req.body);
+            } else {
+                next('new conf get error');
+            }
+        },
+
+        /**
+         * 2、获取数据库配置
+         */
+        getDBData: function (next) {
+            couchDB.getConf(function (err, response) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, response);
+                }
+            });
+        },
+
+        /**
+         * 停止kc服务
+         */
+        stopKCService: ['getDBData', function (results, next) {
+            var oldConf  = results['getDBData'].data;
+            var dbs = [];
+
+            for (var i in oldConf) {
+                dbs.push(oldConf[i].mc_id);
+            }
+            service.kc.stop(dbs);
+            next(null);
+        }],
+
+        /**
+         * 修改密码
+         */
+        changeUserPwd: ['getReqConf', 'getDBData', 'stopKCService', function (results, next) {
+            var reqConf = results['getReqConf'];
+            var dbUser  = reqConf.db_user;
+            var dbPwd   = reqConf.db_pwd;
+            couchDB.userEdit(dbUser, dbPwd, [], function (err, response) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, response);
+                }
+            });
+        }],
+
+        /**
+         * 3、保存配置数据
+         */
+        saveConfData: ['changeUserPwd', function (results, next) {
+            var reqConf = results['getReqConf'];
+            var doc     = results['getDBData'];
+
+            for (var i in doc.data) {
+                if (doc.data[i].mc_id === reqConf.mc_id ) {
+                    doc.data[i].oc_user = reqConf.oc_user;
+                    doc.data[i].oc_pwd  = reqConf.oc_pwd;
+                    doc.data[i].db_user = reqConf.db_user;
+                    doc.data[i].db_pwd  = reqConf.db_pwd;
+                }
+            }
+
+            couchDB.saveConf(doc, function (err, response) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(null, response);
+                }
+            });
+        }]
+
+    };
+
+
+    /**
+     * 执行事件
+     */
+    async.auto(event, function (err, results) {
+        if (!err || err === 'db_exist') {
+            res.redirect('/kc/config');
+        } else {
+            console.log()
+        }
+    });
+
+});
+
 module.exports = report;
