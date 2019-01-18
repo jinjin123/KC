@@ -247,19 +247,13 @@ kc.chackOrder = function (cdb, dbName) {
  * @param dbName
  */
 kc.feed = function (cdb, dbName) {
-
     var feed = cdb.changes({ since: global.config.database.since, include_docs: true });
-
     feed.filter = function(doc) {
-
         return doc.sync_status === 1 && doc.data && doc._deleted !== true && doc.last_state !== doc.data.state;
-
     };
 
     feed.on('change', function(change) {
-
         var order = change.doc;
-
         /**
          * 重新初始化DB
          */
@@ -273,8 +267,6 @@ kc.feed = function (cdb, dbName) {
                 }
             });
         }
-
-
     });
 
     feed.on('error', function(er) {
@@ -462,7 +454,6 @@ kc.conflicts = function (cdb, dbName) {
  */
 kc.start = function () {
     var event = {
-
         /**
          * 获取配置信息
          */
@@ -475,7 +466,6 @@ kc.start = function () {
                 }
             });
         },
-
         /**
          * 第一次保存默认配置
          */
